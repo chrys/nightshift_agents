@@ -1,0 +1,21 @@
+# ==============================================================================
+# Nightly Agy Sweep Configuration
+# Copy this file to repos.conf and add the absolute paths to your Git repos.
+# ==============================================================================
+
+# Repositories to scan every night (must contain a .git directory)
+REPOS=(
+  "$HOME/Projects/my-first-repo"
+  "$HOME/Projects/my-second-repo"
+)
+
+# Model Schedule
+# Weekday model (Mon-Sat) - Fast & quota-efficient
+WEEKDAY_MODEL="Gemini 3.8 Flash (High)"
+
+# Sunday model (Day 7) - Deep reasoning sweep
+SUNDAY_MODEL="Gemini 4 Argon (Medium)"
+
+# Default base branch if auto-detection fails
+DEFAULT_BASE_BRANCH="main"
+EOF

@@ -1,0 +1,39 @@
+# Permanent Nightly Agent Exclusions
+- Do NOT upgrade major versions of dependencies in pyproject.toml, package.json, or requirements.txt.
+- Do NOT modify existing database migration files.
+- Do NOT alter authentication middleware without failing test proof.
+EOF
+
+cat << 'EOF' > /Users/chrys/nightly_prompts/templates/settings.json.example
+{
+  "agentMode": "accept-edits",
+  "enableTerminalSandbox": true,
+  "permissions": {
+    "allow": [
+      "command(.*python.*)",
+      "command(head*)",
+      "command(uv run pytest*)",
+      "command(uv run python*)",
+      "command(uv run ruff*)",
+      "command(pytest*)",
+      "command(npm test*)",
+      "command(git grep*)",
+      "command(git status*)",
+      "command(git log*)",
+      "command(git diff*)",
+      "command(git ls-tree*)",
+      "command(touch*)",
+      "command(echo*)"
+    ],
+    "deny": [
+      "command(git push*)",
+      "command(git commit*)",
+      "command(git checkout*)",
+      "command(git reset --hard*)",
+      "command(rm -rf*)"
+    ]
+  },
+  "trustedWorkspaces": [
+    "/tmp/agy-worktrees"
+  ]
+}

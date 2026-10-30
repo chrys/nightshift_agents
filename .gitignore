@@ -1,0 +1,4 @@
+.DS_Store
+repos.conf
+logs/
+*.log
