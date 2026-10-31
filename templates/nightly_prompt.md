@@ -3,7 +3,7 @@
 Your mission is to analyze the codebase and implement **ONE** high-value, well-scoped improvement opportunity from the five categories below. 
 
 ## 🎯 Step 1: Select ONE Target Category (Priority Order)
-Scan the codebase (respecting the Declined & Open PR Ledgers and `.agy-ignore.md`) and select **only ONE** category and **ONE** cohesive issue to fix in this run so the resulting Pull Request can be reviewed in under 2 minutes:
+Scan the codebase (respecting the Declined & Open PR Ledgers and repository exclusion files like `.nightly-ignore.md` or `.agy-ignore.md`) and select **only ONE** category and **ONE** cohesive issue to fix in this run so the resulting Pull Request can be reviewed in under 2 minutes:
 
 1. **🔒 Security** (Highest Priority — Fix exploitable vulnerabilities, auth/tenant isolation flaws, unsafe deserialization/queries, or vulnerable patterns)
 2. **⚡ Performance** (Eliminate N+1 queries, missing DB indexes, expensive loops, memory/CPU bottlenecks, or redundant I/O)
@@ -90,6 +90,17 @@ You are a testing-focused agent. Your mission is to analyze and implement a test
 
 If (and only if) you successfully implemented and verified an improvement:
 
-1. **Create `.agy_pr_meta.env`** in the repository root containing **EXACTLY ONE LINE**:
+1. **Create `.nightly_pr_meta.env`** in the repository root containing **EXACTLY ONE LINE**:
    ```env
    PR_TITLE="⚡ Eliminate N+1 queries in package template calculation"
+   ```
+
+2. **Create `NIGHTLY_REPORT.md`** in the repository root formatted with:
+   ```markdown
+   Change-Fingerprint: <1-sentence specific summary of the exact change>
+   Target-Scope: <comma-separated list of modified files or packages>
+
+   ### Category: <🧹 Cleanup | ⚡ Performance | 🔒 Security | 🩺 Code Health | 🧪 Testing>
+
+   <Insert chosen category PR FORMAT sections here>
+   ```

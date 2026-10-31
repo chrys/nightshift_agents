@@ -3,4 +3,4 @@ Target-Scope: <comma-separated list of modified files or packages>
 
 ### Category: <🧹 Cleanup | ⚡ Performance | 🔒 Security | 🩺 Code Health | 🧪 Testing>
 
-<Insert FORMAT PR category chosen emoji-bulleted for required sections the your>
+<Insert chosen category PR format with emoji-bulleted sections for your PR body>

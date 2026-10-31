@@ -1,21 +1,52 @@
 # ==============================================================================
-# Nightly Agy Sweep Configuration
-# Copy this file to repos.conf and add the absolute paths to your Git repos.
+# Nightly Prompts Sweep Configuration
+# Copy this file to repos.conf and configure your repositories and engine.
 # ==============================================================================
 
-# Repositories to scan every night (must contain a .git directory)
+# Global Default AI Engine
+# Supported options:
+#   - agy      (Google Antigravity CLI)
+#   - claude   (Anthropic Claude Code CLI)
+#   - opencode (OpenCode CLI)
+ENGINE="agy"
+
+# Repositories to scan every night (must contain a .git directory).
+# You can optionally specify a per-repo engine override by suffixing with ':engine'.
+# Example:
+#   "$HOME/Projects/my-agy-repo"
+#   "$HOME/Projects/my-claude-repo:claude"
+#   "$HOME/Projects/my-opencode-repo:opencode"
 REPOS=(
   "$HOME/Projects/my-first-repo"
   "$HOME/Projects/my-second-repo"
 )
 
-# Model Schedule
-# Weekday model (Mon-Sat) - Fast & quota-efficient
-WEEKDAY_MODEL="Gemini 3.8 Flash (High)"
+# ------------------------------------------------------------------------------
+# Model Schedules (Weekday vs Sunday Deep Reasoning)
+# ------------------------------------------------------------------------------
 
-# Sunday model (Day 7) - Deep reasoning sweep
-SUNDAY_MODEL="Gemini 4 Argon (Medium)"
+# Antigravity (agy) Models
+AGY_WEEKDAY_MODEL="Gemini 3.8 Flash (High)"
+AGY_SUNDAY_MODEL="Gemini 4 Argon (Medium)"
 
-# Default base branch if auto-detection fails
+# Claude Code Models (Leave empty to use Claude Code default)
+CLAUDE_WEEKDAY_MODEL=""
+CLAUDE_SUNDAY_MODEL=""
+
+# OpenCode Models (Leave empty to use OpenCode default)
+OPENCODE_WEEKDAY_MODEL=""
+OPENCODE_SUNDAY_MODEL=""
+
+# Default base branch if git auto-detection fails
 DEFAULT_BASE_BRANCH="main"
-EOF
+
+# ------------------------------------------------------------------------------
+# Quality & Review Controls
+# ------------------------------------------------------------------------------
+
+# Maximum open unmerged PRs per repo before pausing new nightly sweeps (0 to disable)
+MAX_OPEN_PRS=3
+
+# Optional verification test command (e.g., "pytest -q" or "npm test").
+# If specified, the sweep runs this before opening a PR; failing tests discard the branch.
+TEST_COMMAND=""

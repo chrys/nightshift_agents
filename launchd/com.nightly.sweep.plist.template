@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.agy.nightly</string>
+    <string>com.nightly.sweep</string>
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>__INSTALL_DIR__/bin/nightly_agy_sweep.sh</string>
+        <string>__INSTALL_DIR__/bin/nightly_sweep.sh</string>
     </array>
     <key>StartCalendarInterval</key>
     <dict>
@@ -17,8 +17,9 @@
         <integer>0</integer>
     </dict>
     <key>StandardOutPath</key>
-    <string>/tmp/agy-nightly.stdout.log</string>
+    <string>/tmp/nightly-sweep.stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>/tmp/agy-nightly.stderr.log</string>
+    <string>/tmp/nightly-sweep.stderr.log</string>
 </dict>
 </plist>
+
