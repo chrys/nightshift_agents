@@ -24,6 +24,12 @@ Wake up every morning to clean, test-verified Pull Requests on GitHub across fiv
   - When you decline/close an automated PR (and optionally comment why), the orchestrator injects that rejected fingerprint and your review note into subsequent prompts so the agent never proposes the same change again.
 - **Zero-Disruption Git Worktree Isolation:**
   - Checks out temporary branches under `/tmp/nightly-worktrees/...` so your active IDE workspace, branch checkouts, and uncommitted edits are never touched.
+- **Automatic Tech Stack & Test Detection:**
+  - Auto-detects project ecosystems (`uv`, `poetry`, `pytest`, `npm`, `pnpm`, `yarn`, `cargo`, `go`) and injects test/lint commands directly into the prompt context to skip cold-start exploration.
+- **Target-First & Synchronous Execution:**
+  - Enforces targeted module testing during development and runs the full test suite synchronously only during final verification, eliminating idle polling loops.
+- **Permanent Git History Documentation:**
+  - Embeds the full `NIGHTLY_REPORT.md` (fingerprint, target scope, rationale, and measurements) directly into the Git commit body.
 - **Smart Model Scheduling:**
   - Run fast, quota-friendly models on weekdays and deeper-reasoning models on Sundays.
 

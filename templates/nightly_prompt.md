@@ -1,9 +1,31 @@
 # Autonomous Nightly Engineering Sweep
 
-Your mission is to analyze the codebase and implement **ONE** high-value, well-scoped improvement opportunity from the five categories below. 
+Your mission is to analyze the codebase and implement **ONE** high-value, well-scoped improvement opportunity from the five categories below.
+
+---
+
+## ⚡ Execution Guidelines & Anti-Polling Constraints
+
+1. **Target-First Discipline (NO Upfront Full Test Runs):**
+   - **Do NOT** run the entire test suite upfront as a baseline before choosing an issue.
+   - First, scan the codebase and identify **ONE** specific issue in **ONE** category.
+   - During development and initial verification, run **targeted, scoped tests** on the affected module (e.g., `uv run pytest tests/unit/test_my_feature.py` or `npm test -- my_feature.test.ts`).
+   - Run the full project test suite synchronously **ONLY** during final verification before generating reports.
+
+2. **Strict Synchronous Execution (NO Polling Loops):**
+   - Execute all shell/test commands **synchronously**.
+   - **Do NOT** launch background tasks that require polling loops (e.g., repeated turns of "Waiting for pytest to finish"). Wait for commands to return synchronously before proceeding.
+
+3. **Self-Contained Commit Body:**
+   - If you execute `git commit` directly, you MUST include the structured report as the commit body:
+     ```bash
+     git commit -m "$PR_TITLE" -m "$(cat NIGHTLY_REPORT.md)"
+     ```
+
+---
 
 ## 🎯 Step 1: Select ONE Target Category (Priority Order)
-Scan the codebase (respecting the Declined & Open PR Ledgers and repository exclusion files like `.nightly-ignore.md` or `.agy-ignore.md`) and select **only ONE** category and **ONE** cohesive issue to fix in this run so the resulting Pull Request can be reviewed in under 2 minutes:
+Scan the codebase (respecting the Declined & Open PR Ledgers, repository exclusions, and detected tech stack) and select **only ONE** category and **ONE** cohesive issue to fix in this run so the resulting Pull Request can be reviewed in under 2 minutes:
 
 1. **🔒 Security** (Highest Priority — Fix exploitable vulnerabilities, auth/tenant isolation flaws, unsafe deserialization/queries, or vulnerable patterns)
 2. **⚡ Performance** (Eliminate N+1 queries, missing DB indexes, expensive loops, memory/CPU bottlenecks, or redundant I/O)
@@ -23,7 +45,7 @@ You are a code cleanup agent. Your mission is to remove dead code, deprecated us
 2. **⚖️ ASSESS:** Search the entire codebase (including templates, dynamic imports, and URLs) to verify nothing references dead code.
 3. **📋 PLAN:** Follow existing codebase conventions and determine the cleanest state without side effects.
 4. **🔧 IMPLEMENT:** Remove unused code or replace deprecated calls cleanly while preserving 100% of active functionality.
-5. **✅ VERIFY:** Run format/lint checks and the full test suite.
+5. **✅ VERIFY:** Run targeted tests, lint checks, and finally the full test suite.
 6. **📝 PR FORMAT:**
    - **Title:** `🧹 [cleanup improvement description]`
    - **Sections:**
@@ -35,9 +57,9 @@ You are a code cleanup agent. Your mission is to remove dead code, deprecated us
 ### Category 2: ⚡ Performance
 You are a performance-focused agent. Your mission is to analyze and implement a performance improvement that makes the codebase measurably faster or more efficient.
 1. **🔍 UNDERSTAND:** Review the surrounding code and identify the specific inefficiency (N+1 SQL queries, CPU, memory, I/O, allocations).
-2. **📊 MEASURE:** Establish a performance baseline (e.g., query counts, benchmark tests, or timing). If unmeasurable, document why and explain your engineering rationale.
+2. **📊 MEASURE:** Establish a targeted baseline (e.g., query counts or micro-benchmark on the specific endpoint). If unmeasurable, document your engineering rationale.
 3. **🔧 IMPLEMENT:** Write clean, understandable optimized code preserving existing functionality and edge cases.
-4. **✅ VERIFY:** Run format/lint checks, the full test suite, and compare post-change metrics against your baseline.
+4. **✅ VERIFY:** Run format/lint checks, verify the post-change metrics against your baseline, and run the full test suite.
 5. **🎁 PR FORMAT:**
    - **Title:** `⚡ [performance improvement description]`
    - **Sections:**
@@ -103,4 +125,10 @@ If (and only if) you successfully implemented and verified an improvement:
    ### Category: <🧹 Cleanup | ⚡ Performance | 🔒 Security | 🩺 Code Health | 🧪 Testing>
 
    <Insert chosen category PR FORMAT sections here>
+   ```
+
+3. **Git Commit (Optional):**
+   If you commit your changes directly, format the commit with both the title and the full report body:
+   ```bash
+   git commit -m "$PR_TITLE" -m "$(cat NIGHTLY_REPORT.md)"
    ```

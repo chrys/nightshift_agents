@@ -39,6 +39,81 @@ IS_SUNDAY=$([[ $(date +%u) -eq 7 ]] && echo "1" || echo "0")
 LOG_DIR="${LOG_DIR:-$HOME/logs/nightly-sweep/$DATE_STAMP}"
 mkdir -p "$LOG_DIR"
 
+detect_repo_context() {
+  local stack=""
+  local test_cmd=""
+  local lint_cmd=""
+
+  # Python ecosystems
+  if [[ -f "uv.lock" || (-f "pyproject.toml" && -d ".venv") ]]; then
+    stack="Python (uv package manager)"
+    test_cmd="uv run pytest -q --tb=short"
+    lint_cmd="uv run ruff check ."
+  elif [[ -f "poetry.lock" ]]; then
+    stack="Python (Poetry package manager)"
+    test_cmd="poetry run pytest -q --tb=short"
+    lint_cmd="poetry run ruff check . || poetry run flake8"
+  elif [[ -f "Pipfile" ]]; then
+    stack="Python (Pipenv)"
+    test_cmd="pipenv run pytest -q"
+    lint_cmd="flake8"
+  elif [[ -f "pyproject.toml" || -f "requirements.txt" || -f "setup.py" ]]; then
+    stack="Python"
+    test_cmd="pytest -q --tb=short"
+    lint_cmd="ruff check . || flake8"
+  fi
+
+  # Django check
+  if [[ -f "manage.py" ]]; then
+    stack="${stack:+$stack / }Django"
+    lint_cmd="${lint_cmd:-python manage.py check}"
+  fi
+
+  # JavaScript / TypeScript / Node ecosystems
+  if [[ -f "pnpm-lock.yaml" ]]; then
+    stack="${stack:+$stack / }Node.js (pnpm)"
+    test_cmd="${test_cmd:-pnpm test}"
+    lint_cmd="${lint_cmd:-pnpm lint}"
+  elif [[ -f "yarn.lock" ]]; then
+    stack="${stack:+$stack / }Node.js (yarn)"
+    test_cmd="${test_cmd:-yarn test}"
+    lint_cmd="${lint_cmd:-yarn lint}"
+  elif [[ -f "bun.lockb" || -f "bun.lock" ]]; then
+    stack="${stack:+$stack / }Bun"
+    test_cmd="${test_cmd:-bun test}"
+  elif [[ -f "package-lock.json" || -f "package.json" ]]; then
+    stack="${stack:+$stack / }Node.js (npm)"
+    test_cmd="${test_cmd:-npm test}"
+    lint_cmd="${lint_cmd:-npm run lint}"
+  fi
+
+  # Rust
+  if [[ -f "Cargo.toml" ]]; then
+    stack="${stack:+$stack / }Rust (Cargo)"
+    test_cmd="${test_cmd:-cargo test}"
+    lint_cmd="${lint_cmd:-cargo clippy}"
+  fi
+
+  # Go
+  if [[ -f "go.mod" ]]; then
+    stack="${stack:+$stack / }Go"
+    test_cmd="${test_cmd:-go test ./...}"
+    lint_cmd="${lint_cmd:-golangci-lint run}"
+  fi
+
+  # If user explicitly configured TEST_COMMAND, honor it
+  if [[ -n "${TEST_COMMAND:-}" ]]; then
+    test_cmd="$TEST_COMMAND"
+  fi
+
+  if [[ -n "$stack" || -n "$test_cmd" ]]; then
+    printf "Detected Stack: %s\nSuggested Test Runner: %s\nSuggested Lint Command: %s\n" \
+      "${stack:-Generic}" "${test_cmd:-None auto-detected}" "${lint_cmd:-None auto-detected}"
+  else
+    printf "Generic repository structure. Identify project test runners before executing.\n"
+  fi
+}
+
 run_engine() {
   local engine="$1"
   local prompt="$2"
@@ -200,8 +275,13 @@ for REPO_SPEC in "${REPOS[@]}"; do
   git worktree add -B "$BRANCH_NAME" "$WORKTREE_DIR" "origin/$BASE_BRANCH" >> "$LOG_FILE" 2>&1
   cd "$WORKTREE_DIR"
 
-  # 6. Assemble Context-Aware Prompt
+  # 6. Detect Environment and Assemble Context-Aware Prompt
+  DETECTED_ENV=$(detect_repo_context)
+
   PROMPT="You are running an autonomous nightly code health, security, performance, and bug sweep.
+
+### REPOSITORY ENVIRONMENT & COMMANDS
+${DETECTED_ENV}
 
 ### STRICT DO-NOT-REPEAT LEDGER (DECLINED & OPEN PRS)
 The repository owner has previously reviewed and DECLINED the following automated PRs, or they are currently open awaiting review.
@@ -263,9 +343,9 @@ ${TASK_INSTRUCTIONS}"
 
   # 10. Stage and commit uncommitted changes if left behind by agent
   if [[ -n $(git status --porcelain) ]]; then
-    echo "[$(date)] Changes detected in working tree. Committing..." >> "$LOG_FILE"
+    echo "[$(date)] Changes detected in working tree. Committing with report body..." >> "$LOG_FILE"
     git add -A
-    git commit -m "$PR_TITLE" >> "$LOG_FILE" 2>&1
+    git commit -m "$PR_TITLE" -m "$REPORT_BODY" >> "$LOG_FILE" 2>&1
   fi
 
   # Re-evaluate commits ahead of origin/$BASE_BRANCH
@@ -274,6 +354,19 @@ ${TASK_INSTRUCTIONS}"
   # 11. Push and open PR if the branch contains new commits
   if [[ "$COMMITS_AHEAD" -gt 0 ]]; then
     echo "[$(date)] Branch has $COMMITS_AHEAD commit(s) ahead of origin/$BASE_BRANCH. Opening PR..." >> "$LOG_FILE"
+
+    # If the latest commit has an empty commit body, amend it with the report body
+    LATEST_COMMIT_BODY=$(git log -1 --format=%b | tr -d '[:space:]')
+    if [[ -z "$LATEST_COMMIT_BODY" && -n "$REPORT_BODY" ]]; then
+      echo "[$(date)] Amending commit to include detailed report body..." >> "$LOG_FILE"
+      EXISTING_SUBJECT=$(git log -1 --format=%s)
+      if [[ ! "$PR_TITLE" =~ ^chore\(nightly\):[[:space:]]automated ]]; then
+        SUBJECT_TO_USE="$PR_TITLE"
+      else
+        SUBJECT_TO_USE="$EXISTING_SUBJECT"
+      fi
+      git commit --amend -m "$SUBJECT_TO_USE" -m "$REPORT_BODY" >> "$LOG_FILE" 2>&1
+    fi
 
     # If PR_TITLE is still the generic default, use the agent's latest commit message
     if [[ "$PR_TITLE" =~ ^chore\(nightly\):[[:space:]]automated ]]; then
