@@ -224,9 +224,19 @@ for REPO_SPEC in "${REPOS[@]}"; do
 
   cd "$REPO_PATH"
 
+  # Auto-detect git remote (prefer origin, then github, or first available remote)
+  GIT_REMOTE="origin"
+  if git remote | grep -qx "origin"; then
+    GIT_REMOTE="origin"
+  elif git remote | grep -qx "github"; then
+    GIT_REMOTE="github"
+  elif [[ -n $(git remote | head -n 1) ]]; then
+    GIT_REMOTE=$(git remote | head -n 1)
+  fi
+
   # Auto-detect default branch (main vs master)
-  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "$DEFAULT_BASE_BRANCH")
-  git fetch origin "$BASE_BRANCH" >> "$LOG_FILE" 2>&1
+  BASE_BRANCH=$(git symbolic-ref "refs/remotes/$GIT_REMOTE/HEAD" 2>/dev/null | sed "s@^refs/remotes/$GIT_REMOTE/@@" || echo "$DEFAULT_BASE_BRANCH")
+  git fetch "$GIT_REMOTE" "$BASE_BRANCH" >> "$LOG_FILE" 2>&1
 
   # Ensure tracking label exists on GitHub
   gh label create "nightly-sweep" --color "0E8A16" --description "Automated nightly code sweep" --force >> "$LOG_FILE" 2>&1 || true
@@ -272,7 +282,7 @@ for REPO_SPEC in "${REPOS[@]}"; do
   # 5. Create isolated Git Worktree
   rm -rf "$WORKTREE_DIR"
   git worktree prune
-  git worktree add -B "$BRANCH_NAME" "$WORKTREE_DIR" "origin/$BASE_BRANCH" >> "$LOG_FILE" 2>&1
+  git worktree add -B "$BRANCH_NAME" "$WORKTREE_DIR" "$GIT_REMOTE/$BASE_BRANCH" >> "$LOG_FILE" 2>&1
   cd "$WORKTREE_DIR"
 
   # 6. Detect Environment and Assemble Context-Aware Prompt
@@ -328,7 +338,7 @@ ${TASK_INSTRUCTIONS}"
 
   # 9. Automated Test Verification Gate (if test command is configured)
   HAS_UNCOMMITTED_CHANGES=$([[ -n $(git status --porcelain) ]] && echo "1" || echo "0")
-  COMMITS_AHEAD=$(git rev-list --count "origin/$BASE_BRANCH..HEAD" 2>/dev/null || echo "0")
+  COMMITS_AHEAD=$(git rev-list --count "$GIT_REMOTE/$BASE_BRANCH..HEAD" 2>/dev/null || echo "0")
 
   if [[ ("$HAS_UNCOMMITTED_CHANGES" -eq 1 || "$COMMITS_AHEAD" -gt 0) && -n "$TEST_COMMAND" ]]; then
     echo "[$(date)] 🧪 Running automated test verification gate: $TEST_COMMAND..." >> "$LOG_FILE"
@@ -348,12 +358,12 @@ ${TASK_INSTRUCTIONS}"
     git commit -m "$PR_TITLE" -m "$REPORT_BODY" >> "$LOG_FILE" 2>&1
   fi
 
-  # Re-evaluate commits ahead of origin/$BASE_BRANCH
-  COMMITS_AHEAD=$(git rev-list --count "origin/$BASE_BRANCH..HEAD" 2>/dev/null || echo "0")
+  # Re-evaluate commits ahead of $GIT_REMOTE/$BASE_BRANCH
+  COMMITS_AHEAD=$(git rev-list --count "$GIT_REMOTE/$BASE_BRANCH..HEAD" 2>/dev/null || echo "0")
 
   # 11. Push and open PR if the branch contains new commits
   if [[ "$COMMITS_AHEAD" -gt 0 ]]; then
-    echo "[$(date)] Branch has $COMMITS_AHEAD commit(s) ahead of origin/$BASE_BRANCH. Opening PR..." >> "$LOG_FILE"
+    echo "[$(date)] Branch has $COMMITS_AHEAD commit(s) ahead of $GIT_REMOTE/$BASE_BRANCH. Opening PR..." >> "$LOG_FILE"
 
     # If the latest commit has an empty commit body, amend it with the report body
     LATEST_COMMIT_BODY=$(git log -1 --format=%b | tr -d '[:space:]')
@@ -376,7 +386,7 @@ ${TASK_INSTRUCTIONS}"
       fi
     fi
 
-    git push -u origin "$BRANCH_NAME" --force >> "$LOG_FILE" 2>&1
+    git push -u "$GIT_REMOTE" "$BRANCH_NAME" --force >> "$LOG_FILE" 2>&1
 
     gh pr create \
       --base "$BASE_BRANCH" \
