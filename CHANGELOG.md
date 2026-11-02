@@ -28,10 +28,6 @@ All notable changes, architectural features, and pipeline improvements implement
   - Updated `templates/nightly_prompt.md` to enforce the Target-First workflow: scan code first, select ONE issue, run targeted tests on the affected module during development, and run the full test suite synchronously only during final verification.
   - Added strict anti-polling constraints to eliminate wasteful LLM idle turns (*"Waiting for pytest to finish"*).
 
-### Pipeline Milestones
-- **PR #5 (Nov 1):** Merged `🔒 Enforce cross-tenant isolation on selection and basket endpoints` on `VPlanner2` (Sunday deep sweep with Gemini 4 Argon).
-- **PR #6 (Nov 2):** Merged `⚡ Eliminate N+1 queries in dashboard CMS recent pages activity feed` on `VPlanner2` (38.5% query reduction with Gemini 3.8 Flash).
-
 ---
 
 ## [2026-10-31]
@@ -61,10 +57,6 @@ All notable changes, architectural features, and pipeline improvements implement
   - Transitioned from `nightly-agy` to `nightly-sweep` label on GitHub while maintaining full backward-compatible queries for the Do-Not-Repeat ledger.
   - Normalized branch naming to `nightly/YYYY-MM-DD` and worktrees to `/tmp/nightly-worktrees/...`.
 
-### Pipeline Milestones
-- **PR #3 (Oct 31):** Merged `fix(configuration): enforce bool-int type safety and handle unbounded numbers in rule conditions` on `VPlanner2`.
-- **PR #4 (Oct 31):** Merged `🔒 Prevent entity context spoofing via extra_data in parameter rule engine` on `VPlanner2`.
-
 ---
 
 ## [2026-10-30]
@@ -78,7 +70,3 @@ All notable changes, architectural features, and pipeline improvements implement
   - **Permanent Exclusion Ledger:** Supports `.nightly-ignore.md` / `.agy-ignore.md` inside repositories for permanent file/path guardrails.
   - **Per-Project Prompt Overrides:** Supports custom `.agents/nightly_prompt.md` per repository with fallback to global templates.
   - **Smart Quota Scheduling:** Configured fast models (`Gemini 3.8 Flash`) on weekdays and deep-reasoning models (`Gemini 4 Argon`) on Sundays.
-
-### Pipeline Milestones
-- **PR #1 (Oct 30):** Merged `perf(packages): eliminate N+1 queries in template calculation` on `VPlanner2`.
-- **PR #2 (Oct 30):** Declined `🔒 Prevent open redirect vulnerability in user login flow` on `VPlanner2`; successfully tested and verified the Do-Not-Repeat ledger.
