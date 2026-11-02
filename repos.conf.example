@@ -11,14 +11,18 @@
 ENGINE="agy"
 
 # Repositories to scan every night (must contain a .git directory).
-# You can optionally specify a per-repo engine override by suffixing with ':engine'.
+# You can optionally specify a destination branch and/or engine override:
+#   - "/path/to/repo"                  (auto-detected default branch & global engine)
+#   - "/path/to/repo:branch"           (targets custom branch, e.g. ':develop' or ':main')
+#   - "/path/to/repo:engine"           (overrides engine, e.g. ':claude')
+#   - "/path/to/repo:branch:engine"    (targets custom branch AND custom engine)
 # Example:
-#   "$HOME/Projects/my-agy-repo"
-#   "$HOME/Projects/my-claude-repo:claude"
-#   "$HOME/Projects/my-opencode-repo:opencode"
+#   "$HOME/Projects/my-app:main"
+#   "$HOME/Projects/my-service:develop"
+#   "$HOME/Projects/legacy-app:main:claude"
 REPOS=(
-  "$HOME/Projects/my-first-repo"
-  "$HOME/Projects/my-second-repo"
+  "$HOME/Projects/my-first-repo:main"
+  "$HOME/Projects/my-second-repo:develop"
 )
 
 # ------------------------------------------------------------------------------

@@ -69,10 +69,11 @@ Edit `repos.conf` to add your local repositories. You can use your global defaul
 ENGINE="agy"
 
 # Repositories to scan
+# Syntax: "/path/to/repo[:branch][:engine]"
 REPOS=(
-  "$HOME/Projects/backend-service"               # Uses global engine (agy)
-  "$HOME/Projects/frontend-app:claude"          # Overrides to Claude Code
-  "$HOME/Projects/internal-tool:opencode"       # Overrides to OpenCode
+  "$HOME/Projects/backend-service:main"          # Targets 'main' branch
+  "$HOME/Projects/frontend-app:develop"         # Targets 'develop' branch
+  "$HOME/Projects/internal-tool:develop:claude" # Targets 'develop' with Claude Code
 )
 
 # Engine model schedules (weekday vs Sunday deep sweep)
@@ -142,10 +143,11 @@ Edit `repos.conf` to add your local repositories. You can use your global defaul
 ENGINE="agy"
 
 # Repositories to scan
+# Syntax: "/path/to/repo[:branch][:engine]"
 REPOS=(
-  "$HOME/Projects/backend-service"               # Uses global engine (agy)
-  "$HOME/Projects/frontend-app:claude"          # Overrides to Claude Code
-  "$HOME/Projects/internal-tool:opencode"       # Overrides to OpenCode
+  "$HOME/Projects/backend-service:main"          # Targets 'main' branch
+  "$HOME/Projects/frontend-app:develop"         # Targets 'develop' branch
+  "$HOME/Projects/internal-tool:develop:claude" # Targets 'develop' with Claude Code
 )
 
 # Engine model schedules (weekday vs Sunday deep sweep)

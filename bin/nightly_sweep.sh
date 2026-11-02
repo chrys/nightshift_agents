@@ -200,13 +200,41 @@ fetch_open_prs_by_label() {
 }
 
 for REPO_SPEC in "${REPOS[@]}"; do
-  # Parse per-repo engine override (e.g. "/path/to/repo:claude" or "/path/to/repo")
-  if [[ "$REPO_SPEC" =~ ^(.+):(agy|claude|opencode)$ ]]; then
+  # Parse per-repo options (e.g., "/path", "/path:develop", "/path@develop", "/path:claude", "/path:develop:claude")
+  REPO_PATH="$REPO_SPEC"
+  ACTIVE_ENGINE="$GLOBAL_ENGINE"
+  CUSTOM_BASE_BRANCH=""
+
+  if [[ "$REPO_PATH" =~ ^(.+):([^/:]+):(agy|claude|opencode)$ ]]; then
+    REPO_PATH="${BASH_REMATCH[1]}"
+    CUSTOM_BASE_BRANCH="${BASH_REMATCH[2]}"
+    ACTIVE_ENGINE="${BASH_REMATCH[3]}"
+  elif [[ "$REPO_PATH" =~ ^(.+):(agy|claude|opencode):([^/:]+)$ ]]; then
     REPO_PATH="${BASH_REMATCH[1]}"
     ACTIVE_ENGINE="${BASH_REMATCH[2]}"
-  else
-    REPO_PATH="$REPO_SPEC"
-    ACTIVE_ENGINE="$GLOBAL_ENGINE"
+    CUSTOM_BASE_BRANCH="${BASH_REMATCH[3]}"
+  elif [[ "$REPO_PATH" =~ ^(.+)@([^:]+)(:(agy|claude|opencode))?$ ]]; then
+    REPO_PATH="${BASH_REMATCH[1]}"
+    CUSTOM_BASE_BRANCH="${BASH_REMATCH[2]}"
+    if [[ -n "${BASH_REMATCH[4]:-}" ]]; then
+      ACTIVE_ENGINE="${BASH_REMATCH[4]}"
+    fi
+  elif [[ "$REPO_PATH" =~ ^(.+):(agy|claude|opencode)(@(.+))?$ ]]; then
+    REPO_PATH="${BASH_REMATCH[1]}"
+    ACTIVE_ENGINE="${BASH_REMATCH[2]}"
+    if [[ -n "${BASH_REMATCH[4]:-}" ]]; then
+      CUSTOM_BASE_BRANCH="${BASH_REMATCH[4]}"
+    fi
+  elif [[ "$REPO_PATH" =~ ^(.+):([^/:]+)$ ]]; then
+    CANDIDATE_PATH="${BASH_REMATCH[1]}"
+    CANDIDATE_SUFFIX="${BASH_REMATCH[2]}"
+    if [[ "$CANDIDATE_SUFFIX" =~ ^(agy|claude|opencode)$ ]]; then
+      REPO_PATH="$CANDIDATE_PATH"
+      ACTIVE_ENGINE="$CANDIDATE_SUFFIX"
+    else
+      REPO_PATH="$CANDIDATE_PATH"
+      CUSTOM_BASE_BRANCH="$CANDIDATE_SUFFIX"
+    fi
   fi
 
   if [[ ! -d "$REPO_PATH/.git" ]]; then
@@ -234,8 +262,13 @@ for REPO_SPEC in "${REPOS[@]}"; do
     GIT_REMOTE=$(git remote | head -n 1)
   fi
 
-  # Auto-detect default branch (main vs master)
-  BASE_BRANCH=$(git symbolic-ref "refs/remotes/$GIT_REMOTE/HEAD" 2>/dev/null | sed "s@^refs/remotes/$GIT_REMOTE/@@" || echo "$DEFAULT_BASE_BRANCH")
+  # Determine destination/base branch (explicit per-repo override > remote HEAD > DEFAULT_BASE_BRANCH)
+  if [[ -n "$CUSTOM_BASE_BRANCH" ]]; then
+    BASE_BRANCH="$CUSTOM_BASE_BRANCH"
+  else
+    BASE_BRANCH=$(git symbolic-ref "refs/remotes/$GIT_REMOTE/HEAD" 2>/dev/null | sed "s@^refs/remotes/$GIT_REMOTE/@@" || echo "$DEFAULT_BASE_BRANCH")
+  fi
+  echo "[$(date)] Target destination base branch: $BASE_BRANCH (remote: $GIT_REMOTE)" >> "$LOG_FILE"
   git fetch "$GIT_REMOTE" "$BASE_BRANCH" >> "$LOG_FILE" 2>&1
 
   # Ensure tracking label exists on GitHub
