@@ -27,6 +27,10 @@ All notable changes, architectural features, and pipeline improvements implement
 - **Target-First Discipline & Anti-Polling Rules:**
   - Updated `templates/nightly_prompt.md` to enforce the Target-First workflow: scan code first, select ONE issue, run targeted tests on the affected module during development, and run the full test suite synchronously only during final verification.
   - Added strict anti-polling constraints to eliminate wasteful LLM idle turns (*"Waiting for pytest to finish"*).
+- **Linux Automated Schedule Support (`systemd` & `cron`):**
+  - Added `systemd` user service and timer templates (`systemd/nightly-sweep.{service,timer}.template`) scheduled for 02:00 AM daily (`OnCalendar=*-*-* 02:00:00`).
+  - Added automatic OS detection in `install.sh`: registers `systemd --user` timer when active, or automatically falls back to user `crontab` in minimal environments like WSL or containers.
+  - Added Linux standard system paths and `$HOME/.cargo/bin` to sweep script environment `PATH`.
 
 ---
 

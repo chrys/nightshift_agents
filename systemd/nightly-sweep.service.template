@@ -1,0 +1,14 @@
+[Unit]
+Description=Nightly Autonomous Code Sweep Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash __INSTALL_DIR__/bin/nightly_sweep.sh
+WorkingDirectory=__INSTALL_DIR__
+StandardOutput=append:/tmp/nightly-sweep.stdout.log
+StandardError=append:/tmp/nightly-sweep.stderr.log
+
+[Install]
+WantedBy=default.target

@@ -1,6 +1,6 @@
 # Nightly Prompts (`nightly_prompts`)
 
-An autonomous nightly engineering sweep pipeline for macOS supporting **Antigravity (`agy`)**, **Claude Code (`claude`)**, and **OpenCode (`opencode`)**.
+An autonomous nightly engineering sweep pipeline for **macOS and Linux** supporting **Antigravity (`agy`)**, **Claude Code (`claude`)**, and **OpenCode (`opencode`)**.
 
 Wake up every morning to clean, test-verified Pull Requests on GitHub across five specialized engineering personas—without polluting your local working tree or repeating declined suggestions.
 
@@ -42,7 +42,7 @@ Wake up every morning to clean, test-verified Pull Requests on GitHub across fiv
 
 ---
 
-## 🚀 Quick Start (macOS)
+## 🚀 Quick Start (macOS & Linux)
 
 ### 1. Prerequisites
 
@@ -106,7 +106,9 @@ TEST_COMMAND=""           # Optional: e.g. "pytest -q" or "npm test" before open
   ./bin/nightly_sweep.sh
   ```
 - **Automated Schedule:**
-  The installer automatically registers a macOS LaunchAgent at `~/Library/LaunchAgents/com.nightly.sweep.plist` scheduled for **2:00 AM daily**.
+  - **macOS (`launchd`):** Registered as a LaunchAgent at `~/Library/LaunchAgents/com.nightly.sweep.plist` (02:00 AM daily).
+  - **Linux (`systemd --user`):** Registered as a systemd user timer at `~/.config/systemd/user/nightly-sweep.timer` (`systemctl --user status nightly-sweep.timer`).
+  - **Linux (Cron fallback):** If systemd user services are not running (e.g. in WSL or containers), automatically configured in user `crontab` (`0 2 * * *`).
 - **Logs:**
   Execution logs are stored daily in `~/logs/nightly-sweep/<YYYY-MM-DD>/<repo_name>.log`.
 

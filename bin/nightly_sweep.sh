@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Ensure Homebrew, Node/NPM, uv, gh, agy, claude, opencode are on PATH for macOS launchd
-export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.gemini/bin:$HOME/.npm-global/bin:$PATH"
+# Ensure Homebrew, Node/NPM, uv, gh, agy, claude, opencode, and cargo are on PATH for macOS launchd & Linux systemd/cron
+export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.gemini/bin:$HOME/.npm-global/bin:$HOME/.cargo/bin:/usr/bin:/bin:$PATH"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
