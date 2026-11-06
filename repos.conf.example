@@ -48,6 +48,11 @@ DEFAULT_BASE_BRANCH="main"
 # Quality & Review Controls
 # ------------------------------------------------------------------------------
 
+# Enable daily persona rotation (Monday: Performance, Tuesday: Security, Wednesday: Testing,
+# Thursday: Code Health, Friday: Cleanup, Saturday: Hardening, Sunday: Deep Architecture).
+# When true, prevents the agent from fixating on a single category every night.
+PERSONA_ROTATION=true
+
 # Maximum open unmerged PRs per repo before pausing new nightly sweeps (0 to disable)
 MAX_OPEN_PRS=3
 

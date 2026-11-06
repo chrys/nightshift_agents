@@ -4,6 +4,14 @@ set -euo pipefail
 # Ensure Homebrew, Node/NPM, uv, gh, agy, claude, opencode, and cargo are on PATH for macOS launchd & Linux systemd/cron
 export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.gemini/bin:$HOME/.npm-global/bin:$HOME/.cargo/bin:/usr/bin:/bin:$PATH"
 
+# Prevent system and display sleep during nightly sweep execution on macOS
+if [[ "$(uname -s)" == "Darwin" && -z "${NIGHTLY_CAFFEINATED:-}" ]]; then
+  if command -v caffeinate >/dev/null 2>&1; then
+    export NIGHTLY_CAFFEINATED=1
+    exec caffeinate -dimsu "$0" "$@"
+  fi
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 CONFIG_FILE="${NIGHTLY_CONFIG:-${AGY_NIGHTLY_CONFIG:-$ROOT_DIR/repos.conf}}"
@@ -21,6 +29,7 @@ GLOBAL_ENGINE="${ENGINE:-agy}"
 DEFAULT_BASE_BRANCH="${DEFAULT_BASE_BRANCH:-main}"
 MAX_OPEN_PRS="${MAX_OPEN_PRS:-3}"
 TEST_COMMAND="${TEST_COMMAND:-}"
+PERSONA_ROTATION="${PERSONA_ROTATION:-true}"
 
 # Antigravity models (fallback to legacy WEEKDAY_MODEL/SUNDAY_MODEL if present)
 AGY_WEEKDAY_MODEL="${AGY_WEEKDAY_MODEL:-${WEEKDAY_MODEL:-Gemini 3.8 Flash (High)}}"
@@ -112,6 +121,34 @@ detect_repo_context() {
   else
     printf "Generic repository structure. Identify project test runners before executing.\n"
   fi
+}
+
+get_daily_persona_instruction() {
+  local day_of_week
+  day_of_week=$(date +%u)
+  case "$day_of_week" in
+    1)
+      printf "Tonight is **Performance Monday (⚡ Performance)**.\nYour PRIMARY objective tonight is to discover and implement a **⚡ Performance** improvement (eliminate N+1 queries, missing database indexes, memory/CPU bottlenecks, or caching opportunities). You should focus strictly on this category unless there are absolutely no viable performance opportunities in the codebase."
+      ;;
+    2)
+      printf "Tonight is **Security Tuesday (🔒 Security)**.\nYour PRIMARY objective tonight is to discover and implement a **🔒 Security** hardening fix (IDOR/tenant isolation, input validation, authentication/authorization checks, or injection flaws). Focus strictly on this category unless no security opportunities exist."
+      ;;
+    3)
+      printf "Tonight is **Testing Wednesday (🧪 Testing & Reliability)**.\nYour PRIMARY objective tonight is to discover and implement a **🧪 Testing** improvement (critical coverage gaps, untested edge cases, mock-to-real test conversions, or regression tests on business logic). Focus strictly on this category unless test coverage is already exhaustive."
+      ;;
+    4)
+      printf "Tonight is **Code Health Thursday (🩺 Code Health)**.\nYour PRIMARY objective tonight is to discover and implement a **🩺 Code Health** refactoring (reduce cyclomatic complexity, eliminate duplication, improve naming and domain encapsulation). Focus strictly on this category unless the code structure is already optimal."
+      ;;
+    5)
+      printf "Tonight is **Cleanup Friday (🧹 Cleanup & Dead Code)**.\nYour PRIMARY objective tonight is to discover and implement a **🧹 Cleanup** pass (prune dead code, remove obsolete utilities, eliminate unused imports, or replace deprecated framework methods). Focus strictly on this category."
+      ;;
+    6)
+      printf "Tonight is **Hardening Saturday (🧪 Edge Cases & Hardening)**.\nYour PRIMARY objective tonight is to harden system boundaries and edge cases (unhandled exceptions, validation guards, boundary assertions, or race conditions). Focus strictly on robustness and edge cases."
+      ;;
+    7)
+      printf "Tonight is **Deep Audit Sunday (🛡️ Deep Architecture & Comprehensive Audit)**.\nRunning with the high-capability Sunday deep reasoning model. Your PRIMARY objective is a holistic architectural or security audit—tackling cross-cutting concerns, architectural debt, or complex multi-file improvements."
+      ;;
+  esac
 }
 
 run_engine() {
@@ -318,13 +355,32 @@ for REPO_SPEC in "${REPOS[@]}"; do
   git worktree add -B "$BRANCH_NAME" "$WORKTREE_DIR" "$GIT_REMOTE/$BASE_BRANCH" >> "$LOG_FILE" 2>&1
   cd "$WORKTREE_DIR"
 
+  # Exclude orchestrator temporary metadata and report artifacts from git tracking
+  EXCLUDE_FILE=$(git rev-parse --git-path info/exclude 2>/dev/null || true)
+  if [[ -n "$EXCLUDE_FILE" ]]; then
+    mkdir -p "$(dirname "$EXCLUDE_FILE")"
+    for IGNORE_PATTERN in ".nightly_pr_meta.env" ".agy_pr_meta.env" "NIGHTLY_REPORT.md"; do
+      if ! grep -qxF "$IGNORE_PATTERN" "$EXCLUDE_FILE" 2>/dev/null; then
+        echo "$IGNORE_PATTERN" >> "$EXCLUDE_FILE"
+      fi
+    done
+  fi
+
   # 6. Detect Environment and Assemble Context-Aware Prompt
   DETECTED_ENV=$(detect_repo_context)
+
+  ROTATION_INSTRUCTION="Choose the single highest-impact opportunity across any category."
+  if [[ "$PERSONA_ROTATION" =~ ^(true|1|yes)$ ]]; then
+    ROTATION_INSTRUCTION=$(get_daily_persona_instruction)
+  fi
 
   PROMPT="You are running an autonomous nightly code health, security, performance, and bug sweep.
 
 ### REPOSITORY ENVIRONMENT & COMMANDS
 ${DETECTED_ENV}
+
+### TONIGHT'S ROTATION FOCUS
+${ROTATION_INSTRUCTION}
 
 ### STRICT DO-NOT-REPEAT LEDGER (DECLINED & OPEN PRS)
 The repository owner has previously reviewed and DECLINED the following automated PRs, or they are currently open awaiting review.

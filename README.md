@@ -23,17 +23,21 @@ Wake up every morning to clean, test-verified Pull Requests on GitHub across fiv
   - Enforces targeted module testing during development and runs the full test suite synchronously only during final verification, eliminating idle polling loops.
 - **Permanent Git History Documentation:**
   - Embeds the full `NIGHTLY_REPORT.md` (fingerprint, target scope, rationale, and measurements) directly into the Git commit body so architectural decisions persist in `git log` and `git blame`.
-- **5 Specialized Engineering Personas:**
-  - 🔒 **Security:** Hunts for IDOR/tenant isolation flaws, injection risks, and broken access controls.
-  - ⚡ **Performance:** Eliminates N+1 queries, missing indexes, and CPU/memory bottlenecks with baseline measurements.
-  - 🩺 **Code Health:** Refactors high cyclomatic complexity, duplication, and leaky abstractions.
-  - 🧹 **Cleanup:** Removes dead code, unused imports, and deprecated calls.
-  - 🧪 **Testing:** Closes critical unit/integration test coverage gaps and hardens edge cases.
-- **GitHub-Backed "Do-Not-Repeat" Memory Ledger:**
-  - Uses GitHub PR state (`nightly-sweep` and legacy `nightly-agy` labels) as a stateless database.
-  - When you decline/close an automated PR (and optionally comment why), the orchestrator injects that rejected fingerprint and your review note into subsequent prompts so the agent never proposes the same change again.
-- **Zero-Disruption Git Worktree Isolation:**
+- **Daily Persona Rotation Schedule:**
+  - Eliminates category bias (e.g. repeated security IDOR findings) by rotating focus each day of the week:
+    - ⚡ **Monday:** Performance (N+1 queries, indexes, caching, memory/CPU bottlenecks)
+    - 🔒 **Tuesday:** Security (IDOR/tenant isolation, input validation, CSRF/XSS)
+    - 🧪 **Wednesday:** Testing & Reliability (closing critical coverage gaps, error handling)
+    - 🩺 **Thursday:** Code Health (cyclomatic complexity, DRY refactoring, domain modeling)
+    - 🧹 **Friday:** Cleanup & Dead Code (pruning obsolete code, stale flags, unused imports)
+    - 🧪 **Saturday:** Edge Cases & Hardening (stress testing, boundary guards, race conditions)
+    - 🛡️ **Sunday:** Deep Architectural Audit (comprehensive audit paired with deep reasoning models)
+- **macOS Sleep Prevention & Wake Scheduling:**
+  - Self-wraps execution with `caffeinate -dimsu` on macOS to prevent display, idle, disk, and system sleep while sweeps and test suites run.
+  - Setup guidance for configuring automatic system wake before scheduled 02:00 AM runs (`pmset repeat wakeorpoweron`).
+- **Clean Worktree Isolation & Metadata Exclusion:**
   - Checks out temporary branches under `/tmp/nightly-worktrees/...` so your active IDE workspace, branch checkouts, and uncommitted edits are never touched.
+  - Automatically excludes orchestrator metadata (`.nightly_pr_meta.env`, `NIGHTLY_REPORT.md`) via `.git/info/exclude` to guarantee no unwanted files or cleanup commits pollute the repository history.
 - **PR Backlog Throttling & Test Gate:**
   - Pauses new sweeps if unmerged automated PRs reach `MAX_OPEN_PRS` to prevent review queue accumulation.
   - Optional `TEST_COMMAND` gate ensures failing runs discard changes before opening a PR.
@@ -94,6 +98,7 @@ OPENCODE_WEEKDAY_MODEL="" # Leave blank for OpenCode default or specify e.g. "op
 OPENCODE_SUNDAY_MODEL=""
 
 # Quality & Backlog Controls
+PERSONA_ROTATION=true     # Daily rotation: Mon=Perf, Tue=Sec, Wed=Test, Thu=Health, Fri=Clean, Sat=Harden, Sun=Arch
 MAX_OPEN_PRS=3            # Skip sweep if 3 or more automated PRs are currently awaiting review
 TEST_COMMAND=""           # Optional: e.g. "pytest -q" or "npm test" before opening PR
 ```
@@ -107,6 +112,11 @@ TEST_COMMAND=""           # Optional: e.g. "pytest -q" or "npm test" before open
   ```
 - **Automated Schedule:**
   - **macOS (`launchd`):** Registered as a LaunchAgent at `~/Library/LaunchAgents/com.nightly.sweep.plist` (02:00 AM daily).
+    > **Note on macOS Sleep:** `launchd` only triggers jobs while the system is awake. To wake your Mac automatically before the 02:00 AM sweep, set a wake schedule:
+    > ```bash
+    > sudo pmset repeat wakeorpoweron MTWRFSU 01:58:00
+    > ```
+    > Once started, `nightly_sweep.sh` automatically keeps your Mac awake using `caffeinate -dimsu` until the entire sweep completes.
   - **Linux (`systemd --user`):** Registered as a systemd user timer at `~/.config/systemd/user/nightly-sweep.timer` (`systemctl --user status nightly-sweep.timer`).
   - **Linux (Cron fallback):** If systemd user services are not running (e.g. in WSL or containers), automatically configured in user `crontab` (`0 2 * * *`).
 - **Logs:**

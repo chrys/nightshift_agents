@@ -4,6 +4,29 @@ All notable changes, architectural features, and pipeline improvements implement
 
 ---
 
+## [2026-11-06]
+
+### Added
+- **Daily Persona Rotation Schedule:**
+  - Added configurable `PERSONA_ROTATION=true` in `repos.conf` and `bin/nightly_sweep.sh` to eliminate the agent's tendency to fixate exclusively on security IDORs.
+  - Rotates daily engineering themes across the week:
+    - **Monday:** ⚡ Performance (N+1 queries, indexes, caching, memory/CPU bottlenecks)
+    - **Tuesday:** 🔒 Security (IDOR/tenant isolation, input validation, CSRF/XSS)
+    - **Wednesday:** 🧪 Testing & Reliability (closing critical coverage gaps, error handling)
+    - **Thursday:** 🩺 Code Health (cyclomatic complexity, DRY refactoring, domain modeling)
+    - **Friday:** 🧹 Cleanup & Dead Code (pruning obsolete utilities, stale flags, unused imports)
+    - **Saturday:** 🧪 Edge Cases & Hardening (stress testing, boundary assertions, race conditions)
+    - **Sunday:** 🛡️ Deep Architectural Audit (comprehensive review paired with deep-reasoning models)
+  - Injects `### TONIGHT'S ROTATION FOCUS` into the agent prompt and updated `templates/nightly_prompt.md` to enforce adhering to the daily theme unless no actionable opportunities exist in that category.
+- **Sleep Prevention & Wake Scheduling (macOS):**
+  - Integrated `caffeinate -dimsu` self-wrapping at the top of `bin/nightly_sweep.sh` to hold system, idle, disk, and display sleep assertions until sweeps and test suites finish.
+  - Updated `install.sh` to detect existing `pmset` wake schedules and provide system wake guidance (`sudo pmset repeat wakeorpoweron MTWRFSU 01:58:00`) so sleeping Macs wake before the 02:00 AM sweep.
+- **Worktree Metadata Exclusion:**
+  - Added automatic `.git/info/exclude` registration in temporary worktrees for `.nightly_pr_meta.env`, `.agy_pr_meta.env`, and `NIGHTLY_REPORT.md`.
+  - Prevents orchestrator metadata from being staged by `git add -A` or producing dirty worktree states and cleanup commits.
+
+---
+
 ## [2026-11-02]
 
 ### Added

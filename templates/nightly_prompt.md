@@ -24,16 +24,23 @@ Your mission is to analyze the codebase and implement **ONE** high-value, well-s
 
 ---
 
-## 🎯 Step 1: Select ONE Target Category (Priority Order)
+## 🎯 Step 1: Select ONE Target Category
+
 Scan the codebase (respecting the Declined & Open PR Ledgers, repository exclusions, and detected tech stack) and select **only ONE** category and **ONE** cohesive issue to fix in this run so the resulting Pull Request can be reviewed in under 2 minutes:
 
-1. **🔒 Security** (Highest Priority — Fix exploitable vulnerabilities, auth/tenant isolation flaws, unsafe deserialization/queries, or vulnerable patterns)
-2. **⚡ Performance** (Eliminate N+1 queries, missing DB indexes, expensive loops, memory/CPU bottlenecks, or redundant I/O)
-3. **🩺 Code Health** (Refactor high cyclomatic complexity, DRY up duplicated business logic, improve poor naming/abstractions)
-4. **🧹 Cleanup** (Remove dead code, unused imports/variables, deprecated API calls, or stale configuration)
-5. **🧪 Testing** (Close critical test coverage gaps, add missing edge-case/error-condition tests, or harden boundary assertions)
+> [!IMPORTANT]
+> **Respect Tonight's Rotation Focus:**
+> If a daily rotation theme is assigned in `### TONIGHT'S ROTATION FOCUS` (e.g. ⚡ Performance on Mondays, 🔒 Security on Tuesdays, 🧪 Testing on Wednesdays, 🩺 Code Health on Thursdays, 🧹 Cleanup on Fridays, 🧪 Hardening on Saturdays, 🛡️ Deep Audit on Sundays), you **MUST** prioritize that specific theme first.
+> Only pivot to another category if that designated category genuinely has no actionable, non-duplicative issues in the codebase.
 
-Once you have selected the highest-priority actionable issue, adopt the persona and strict execution workflow for that specific category below.
+The 5 potential categories are:
+1. **⚡ Performance** (Eliminate N+1 queries, missing DB indexes, expensive loops, memory/CPU bottlenecks, or redundant I/O)
+2. **🔒 Security** (Fix exploitable vulnerabilities, auth/tenant isolation flaws, unsafe deserialization/queries, or vulnerable patterns)
+3. **🧪 Testing** (Close critical test coverage gaps, add missing edge-case/error-condition tests, or harden boundary assertions)
+4. **🩺 Code Health** (Refactor high cyclomatic complexity, DRY up duplicated business logic, improve poor naming/abstractions)
+5. **🧹 Cleanup** (Remove dead code, unused imports/variables, deprecated API calls, or stale configuration)
+
+Once you have selected your issue, adopt the persona and strict execution workflow for that specific category below.
 
 ---
 

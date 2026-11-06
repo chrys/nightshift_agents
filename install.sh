@@ -106,6 +106,16 @@ if [[ "$OS_TYPE" == "Darwin" ]]; then
 
   echo "✅ Loaded macOS LaunchAgent at $PLIST_DEST (Scheduled for 02:00 AM daily)"
 
+  # Check wake schedule
+  if command -v pmset >/dev/null 2>&1; then
+    if ! pmset -g sched 2>/dev/null | grep -qi "wakeorpoweron"; then
+      echo ""
+      echo "💡 Tip: macOS launchd jobs only trigger when your Mac is awake."
+      echo "   To ensure your Mac automatically wakes at 01:58 AM for the 02:00 AM sweep, run:"
+      echo "   sudo pmset repeat wakeorpoweron MTWRFSU 01:58:00"
+    fi
+  fi
+
 elif [[ "$OS_TYPE" == "Linux" ]]; then
   echo "🐧 Setting up Linux Automated Schedule..."
   SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
@@ -154,3 +164,7 @@ echo "  1. Edit $ROOT_DIR/repos.conf and add your local Git repository paths."
 echo "     (e.g., '/path/to/repo:main' or '/path/to/repo:develop:claude')"
 echo "  2. Test a manual run anytime with: $ROOT_DIR/bin/nightly_sweep.sh"
 echo "  3. Check execution logs in: ~/logs/nightly-sweep/<date>/"
+if [[ "$OS_TYPE" == "Darwin" ]]; then
+  echo "  4. (macOS) To auto-wake from sleep before 02:00 AM:"
+  echo "     sudo pmset repeat wakeorpoweron MTWRFSU 01:58:00"
+fi
