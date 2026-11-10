@@ -4,6 +4,18 @@ All notable changes, architectural features, and pipeline improvements implement
 
 ---
 
+## [2026-11-10]
+
+### Added
+- **Automated Architectural Exclusion Distillation (`distill_architectural_exclusions_from_rejected_prs`):**
+  - Automatically queries newly closed/rejected pull requests (`gh pr list --state closed`) before each repository's nightly sweep.
+  - Detects reviewer rejection comments and runs a focused AI distillation query to determine if the feedback represents a permanent architectural constraint, technology boundary, or design rule (e.g. "no plans for cross-tenant functionality").
+  - Extracted rules are automatically saved to `.nightly-ignore.md` (or `.agy-ignore.md`) under human-readable headers (e.g. `### Architectural Rule (from PR #91)`) and kept as local files in the repository for developer review.
+  - Zero-token caching: PRs already recorded or evaluated without architectural rules are marked (`<!-- evaluated-pr: <number> -->`) and skipped on subsequent sweeps.
+  - Newly learned exclusions are immediately loaded into `### PERMANENT REPOSITORY EXCLUSIONS` for all future sweeps.
+
+---
+
 ## [2026-11-06]
 
 ### Added

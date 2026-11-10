@@ -35,6 +35,10 @@ Wake up every morning to clean, test-verified Pull Requests on GitHub across fiv
 - **macOS Sleep Prevention & Wake Scheduling:**
   - Self-wraps execution with `caffeinate -dimsu` on macOS to prevent display, idle, disk, and system sleep while sweeps and test suites run.
   - Setup guidance for configuring automatic system wake before scheduled 02:00 AM runs (`pmset repeat wakeorpoweron`).
+- **Self-Learning Architectural Memory:**
+  - Before each sweep, the orchestrator inspects newly closed/rejected PRs with comments.
+  - Automatically runs an AI distillation query on reviewer feedback to detect permanent architectural boundaries or technology constraints (e.g. *"no plans for cross-tenant functionality"*).
+  - Automatically appends extracted rules to the local `.nightly-ignore.md` (e.g. `### Architectural Rule (from PR #91)`), permanently preventing future sweeps from proposing rejected architectural patterns across the entire codebase.
 - **Clean Worktree Isolation & Metadata Exclusion:**
   - Checks out temporary branches under `/tmp/nightly-worktrees/...` so your active IDE workspace, branch checkouts, and uncommitted edits are never touched.
   - Automatically excludes orchestrator metadata (`.nightly_pr_meta.env`, `NIGHTLY_REPORT.md`) via `.git/info/exclude` to guarantee no unwanted files or cleanup commits pollute the repository history.
@@ -127,12 +131,17 @@ TEST_COMMAND=""           # Optional: e.g. "pytest -q" or "npm test" before open
 ## ⚙️ Customization & Exclusions
 
 ### Permanent File Exclusions (`.nightly-ignore.md`)
-Add a `.nightly-ignore.md` (or `.agy-ignore.md`) to any repository root to instruct the sweep agent to permanently skip specific modules, directories, or migration paths:
+Add a `.nightly-ignore.md` (or `.agy-ignore.md`) to any repository root to instruct the sweep agent to permanently skip specific modules, directories, or migration paths. 
+
+The orchestrator also **automatically learns and updates** this file when you reject a PR and leave a review comment specifying an architectural constraint:
 
 ```markdown
 # Repository Exclusions
 - Do NOT touch `src/legacy/`
 - Do NOT modify database migrations under `db/migrations/`
+
+### Architectural Rule (from PR #91)
+- **No Multi-Tenancy / Cross-Tenant Scope:** There are no plans for cross-tenant functionality in this application. Do NOT propose cross-tenant isolation, tenant-scoping, or multi-tenant IDOR refactorings.
 ```
 
 ### Custom Prompts Per Repo (`.agents/nightly_prompt.md`)

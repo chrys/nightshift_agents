@@ -236,6 +236,135 @@ fetch_open_prs_by_label() {
     ' 2>/dev/null || true
 }
 
+distill_rule_with_engine() {
+  local engine="$1"
+  local prompt="$2"
+
+  case "$engine" in
+    agy)
+      local model="${AGY_WEEKDAY_MODEL:-Gemini 3.8 Flash (High)}"
+      agy --model "$model" --sandbox --dangerously-skip-permissions -p "$prompt" 2>/dev/null || true
+      ;;
+    claude)
+      local model="${CLAUDE_WEEKDAY_MODEL:-}"
+      if [[ -n "$model" ]]; then
+        claude --model "$model" --dangerously-skip-permissions -p "$prompt" 2>/dev/null || true
+      else
+        claude --dangerously-skip-permissions -p "$prompt" 2>/dev/null || true
+      fi
+      ;;
+    opencode)
+      local model="${OPENCODE_WEEKDAY_MODEL:-}"
+      if [[ -n "$model" ]]; then
+        opencode run -m "$model" "$prompt" 2>/dev/null || true
+      else
+        opencode run "$prompt" 2>/dev/null || true
+      fi
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+fetch_candidate_rejected_prs() {
+  local label="$1"
+  gh pr list \
+    --state closed \
+    --label "$label" \
+    --limit 20 \
+    --json number,title,body,mergedAt,comments \
+    --jq '
+      map(select(.mergedAt == null and (.comments | length) > 0)) |
+      map({
+        number: .number,
+        title: .title,
+        comments: (.comments | map(.body) | join("\n---\n")),
+        details: (.body | split("\n") | map(select(startswith("Target-Scope:") or startswith("Change-Fingerprint:"))) | join("\n"))
+      })
+    ' 2>/dev/null || echo "[]"
+}
+
+distill_architectural_exclusions_from_rejected_prs() {
+  local repo_path="$1"
+  local engine="$2"
+  local log_file="$3"
+
+  local ignore_file="$repo_path/.nightly-ignore.md"
+  if [[ ! -f "$ignore_file" && -f "$repo_path/.agy-ignore.md" ]]; then
+    ignore_file="$repo_path/.agy-ignore.md"
+  elif [[ ! -f "$ignore_file" ]]; then
+    echo "# Permanent Repository Exclusions" > "$ignore_file"
+  fi
+
+  local raw_modern raw_legacy combined_json
+  raw_modern=$(fetch_candidate_rejected_prs "nightly-sweep")
+  raw_legacy=$(fetch_candidate_rejected_prs "nightly-agy")
+
+  combined_json=$(printf "%s\n%s" "$raw_modern" "$raw_legacy" | jq -s 'add | unique_by(.number)' 2>/dev/null || echo "[]")
+
+  local pr_numbers
+  pr_numbers=$(echo "$combined_json" | jq -r '.[].number' 2>/dev/null || true)
+
+  if [[ -z "$pr_numbers" ]]; then
+    return 0
+  fi
+
+  for pr_num in $pr_numbers; do
+    # Skip if already recorded in the ignore file
+    if grep -qE "(### Architectural Rule \(from PR #$pr_num\)|<!-- evaluated-pr: $pr_num )" "$ignore_file" 2>/dev/null; then
+      continue
+    fi
+
+    local pr_title pr_details pr_comments
+    pr_title=$(echo "$combined_json" | jq -r --argjson num "$pr_num" '.[] | select(.number == $num) | .title' 2>/dev/null || true)
+    pr_details=$(echo "$combined_json" | jq -r --argjson num "$pr_num" '.[] | select(.number == $num) | .details' 2>/dev/null || true)
+    pr_comments=$(echo "$combined_json" | jq -r --argjson num "$pr_num" '.[] | select(.number == $num) | .comments' 2>/dev/null || true)
+
+    if [[ -z "$pr_comments" ]]; then
+      continue
+    fi
+
+    echo "[$(date)] 🔍 Distilling potential architectural exclusion from rejected PR #$pr_num..." >> "$log_file"
+
+    local distill_prompt="You are an architectural rule extraction assistant for an automated software engineering pipeline.
+A human repository owner rejected and closed an automated Pull Request with review feedback.
+
+PR Details:
+- Title: ${pr_title}
+- Fingerprint & Scope:
+${pr_details}
+- Reviewer Rejection Note / Comment(s):
+${pr_comments}
+
+Your Task:
+Analyze the reviewer feedback. Determine whether the reviewer stated a permanent architectural boundary, feature/technology exclusion, or design rule that applies across the whole project (e.g., 'no plans for cross-tenant functionality', 'we do not use library X', 'do not touch payments', 'single-tenant only').
+
+Rules:
+1. If the reviewer stated a permanent architectural constraint, scope boundary, or rule:
+   Output 1-3 clear, authoritative markdown bullet points specifying what future automated agents MUST NOT do or assume (e.g., '- **No Multi-Tenancy / Cross-Tenant Scope:** The application does not support or plan for cross-tenant functionality. Do NOT propose cross-tenant isolation, tenant-scoping, or multi-tenant IDOR refactorings.').
+2. If the reviewer comment is NOT a global architectural constraint (e.g. it was rejected because of a broken test, typo, minor bug, localized preference on this specific file, or general rejection like 'not needed right now'):
+   Output EXACTLY the word: NONE
+3. Output ONLY the markdown bullet points or NONE. Do not include introductory text, conversational pleasantries, or wrapping code blocks."
+
+    local raw_output cleaned_output
+    raw_output=$(distill_rule_with_engine "$engine" "$distill_prompt")
+    cleaned_output=$(echo "$raw_output" | sed -e '/^```/d' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | sed -e '/^[[:space:]]*$/d')
+
+    if [[ -z "$cleaned_output" || "$cleaned_output" =~ ^NONE ]]; then
+      echo "<!-- evaluated-pr: $pr_num (no architectural rule) -->" >> "$ignore_file"
+      echo "[$(date)] Evaluated PR #$pr_num: No architectural rule detected. Marked as evaluated." >> "$log_file"
+    else
+      {
+        echo ""
+        echo "### Architectural Rule (from PR #$pr_num)"
+        echo "$cleaned_output"
+      } >> "$ignore_file"
+      echo "[$(date)] 🧠 Learned new architectural rule from PR #$pr_num and saved to $(basename "$ignore_file")." >> "$log_file"
+    fi
+  done
+}
+
 for REPO_SPEC in "${REPOS[@]}"; do
   # Parse per-repo options (e.g., "/path", "/path:develop", "/path@develop", "/path:claude", "/path:develop:claude")
   REPO_PATH="$REPO_SPEC"
@@ -333,6 +462,9 @@ for REPO_SPEC in "${REPOS[@]}"; do
     echo "[$(date)] ⏸️  Open PR backlog limit reached ($OPEN_PRS_COUNT >= $MAX_OPEN_PRS). Skipping sweep for $REPO_NAME until open PRs are reviewed." >> "$LOG_FILE"
     continue
   fi
+
+  # 2b. Automatically distill permanent architectural exclusions from newly rejected PR comments
+  distill_architectural_exclusions_from_rejected_prs "$REPO_PATH" "$ACTIVE_ENGINE" "$LOG_FILE"
 
   # 3. Read static repo-level ignore rules (.nightly-ignore.md or .agy-ignore.md)
   STATIC_IGNORES="None"
