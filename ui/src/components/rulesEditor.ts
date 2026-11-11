@@ -5,15 +5,24 @@ type RulesFilterTab = 'learned' | 'static' | 'evaluated' | 'raw';
 export function renderRulesEditor(
   container: HTMLElement,
   repo: RepoSpec,
-  ignoreData: IgnoreFileContent,
+  initialIgnoreData: IgnoreFileContent,
   onSave: (newContent: string) => Promise<void>
 ) {
+  let ignoreData = initialIgnoreData;
   const { staticRules, architecturalRules, evaluatedPrs, raw } = ignoreData;
 
-  // Initial active tab: prioritize learned rules if any, else static guardrails
-  let activeTab: RulesFilterTab = architecturalRules.length > 0 ? 'learned' : (staticRules.length > 0 ? 'static' : 'raw');
+  // Initial active tab: prioritize static if available or learned
+  let activeTab: RulesFilterTab = staticRules.length > 0 ? 'static' : (architecturalRules.length > 0 ? 'learned' : 'raw');
+
+  async function reloadDataAndRender(targetTab?: RulesFilterTab) {
+    if (targetTab) activeTab = targetTab;
+    ignoreData = await window.electronAPI.getIgnoreFile(repo.path);
+    render();
+  }
 
   function render() {
+    const { staticRules, architecturalRules, evaluatedPrs, raw } = ignoreData;
+
     container.innerHTML = `
       <div class="space-y-6">
         <!-- Header -->
@@ -37,27 +46,7 @@ export function renderRulesEditor(
 
         <!-- 3 Interactive Filter Tabs -->
         <div class="grid grid-cols-3 gap-4">
-          <!-- Card 1: Learned from Rejected PRs -->
-          <div 
-            id="tab-rule-learned"
-            class="rule-card-tab cursor-pointer p-4 rounded-xl border transition-all duration-150 ${
-              activeTab === 'learned'
-                ? 'bg-dark-700 border-blue-500 ring-2 ring-blue-500/20 shadow-lg'
-                : 'bg-dark-800 border-dark-600 hover:border-dark-500 hover:bg-dark-750'
-            }"
-            data-tab="learned"
-          >
-            <div class="flex items-center justify-between text-xs font-medium text-dark-500 mb-1">
-              <span class="${activeTab === 'learned' ? 'text-blue-400 font-semibold' : ''}">Learned from PRs</span>
-              <span class="text-sm">🧠</span>
-            </div>
-            <div class="text-3xl font-extrabold ${activeTab === 'learned' ? 'text-blue-400' : 'text-white'}">
-              ${architecturalRules.length}
-            </div>
-            <p class="text-[11px] text-dark-500 mt-1">Auto-distilled from rejection notes</p>
-          </div>
-
-          <!-- Card 2: Static Guardrails -->
+          <!-- Card 1: Static Guardrails -->
           <div 
             id="tab-rule-static"
             class="rule-card-tab cursor-pointer p-4 rounded-xl border transition-all duration-150 ${
@@ -75,6 +64,26 @@ export function renderRulesEditor(
               ${staticRules.length}
             </div>
             <p class="text-[11px] text-dark-500 mt-1">Permanent human-written exclusions</p>
+          </div>
+
+          <!-- Card 2: Learned from Rejected PRs -->
+          <div 
+            id="tab-rule-learned"
+            class="rule-card-tab cursor-pointer p-4 rounded-xl border transition-all duration-150 ${
+              activeTab === 'learned'
+                ? 'bg-dark-700 border-blue-500 ring-2 ring-blue-500/20 shadow-lg'
+                : 'bg-dark-800 border-dark-600 hover:border-dark-500 hover:bg-dark-750'
+            }"
+            data-tab="learned"
+          >
+            <div class="flex items-center justify-between text-xs font-medium text-dark-500 mb-1">
+              <span class="${activeTab === 'learned' ? 'text-blue-400 font-semibold' : ''}">Learned from PRs</span>
+              <span class="text-sm">🧠</span>
+            </div>
+            <div class="text-3xl font-extrabold ${activeTab === 'learned' ? 'text-blue-400' : 'text-white'}">
+              ${architecturalRules.length}
+            </div>
+            <p class="text-[11px] text-dark-500 mt-1">Auto-distilled from rejection notes</p>
           </div>
 
           <!-- Card 3: Evaluated Clean PRs -->
@@ -118,14 +127,14 @@ export function renderRulesEditor(
 
     // Toggle Raw Editor
     document.getElementById('btn-toggle-raw')?.addEventListener('click', () => {
-      activeTab = activeTab === 'raw' ? 'learned' : 'raw';
+      activeTab = activeTab === 'raw' ? 'static' : 'raw';
       render();
     });
 
     // Save File Button
     document.getElementById('btn-save-rules')?.addEventListener('click', async () => {
       const textarea = document.getElementById('rules-raw-editor') as HTMLTextAreaElement;
-      const contentToSave = textarea ? textarea.value : raw;
+      const contentToSave = textarea ? textarea.value : ignoreData.raw;
       const btnSave = document.getElementById('btn-save-rules');
       const statusSpan = document.getElementById('rules-save-status');
 
@@ -136,6 +145,61 @@ export function renderRulesEditor(
         statusSpan.classList.remove('hidden');
         setTimeout(() => statusSpan.classList.add('hidden'), 2500);
       }
+      await reloadDataAndRender();
+    });
+
+    // Add Guardrail Action (Inside Static Tab)
+    const btnAddGuardrail = document.getElementById('btn-add-guardrail');
+    const inputNewGuardrail = document.getElementById('input-new-guardrail') as HTMLInputElement;
+
+    const handleAddGuardrail = async () => {
+      if (!inputNewGuardrail) return;
+      const val = inputNewGuardrail.value.trim().replace(/^[-*]\s*/, '');
+      if (!val) return;
+
+      const ruleLine = `- ${val}`;
+      let currentRaw = ignoreData.raw || '# Permanent Guardrails\n# Nightly Agent Exclusions & Rules\n';
+
+      // Insert before first architectural rule if present, otherwise append
+      const archIndex = currentRaw.indexOf('### Architectural Rule');
+      if (archIndex !== -1) {
+        currentRaw = currentRaw.slice(0, archIndex).trimEnd() + '\n' + ruleLine + '\n\n' + currentRaw.slice(archIndex);
+      } else {
+        currentRaw = currentRaw.trimEnd() + '\n' + ruleLine + '\n';
+      }
+
+      await onSave(currentRaw);
+      await reloadDataAndRender('static');
+    };
+
+    btnAddGuardrail?.addEventListener('click', handleAddGuardrail);
+    inputNewGuardrail?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleAddGuardrail();
+      }
+    });
+
+    // Delete Guardrail Action (Inside Static Tab)
+    container.querySelectorAll('.btn-delete-guardrail').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const indexStr = (btn as HTMLElement).dataset.index;
+        if (indexStr === undefined) return;
+        const index = parseInt(indexStr, 10);
+        const ruleToRemove = staticRules[index];
+        if (!ruleToRemove) return;
+
+        if (confirm(`Remove this guardrail?\n\n"${ruleToRemove}"`)) {
+          const lines = (ignoreData.raw || '').split('\n');
+          const filteredLines = lines.filter((line) => {
+            const trimmed = line.trim().replace(/^[-*]\s*/, '');
+            return trimmed !== ruleToRemove;
+          });
+
+          await onSave(filteredLines.join('\n'));
+          await reloadDataAndRender('static');
+        }
+      });
     });
   }
 
@@ -150,6 +214,71 @@ function renderTabContent(
   raw: string
 ): string {
   switch (tab) {
+    case 'static':
+      return `
+        <div class="space-y-4">
+          <div class="flex items-center justify-between border-b border-dark-700 pb-2.5">
+            <div>
+              <h4 class="text-sm font-semibold text-white flex items-center space-x-2">
+                <span>🛡️</span>
+                <span>Static Guardrails (${staticRules.length})</span>
+              </h4>
+              <p class="text-xs text-dark-500 mt-0.5">
+                Permanent human-defined rules that instruct the AI agent to skip specific directories, migration files, or dependencies.
+              </p>
+            </div>
+          </div>
+
+          <!-- Add New Guardrail Input -->
+          <div class="bg-dark-800 border border-dark-600 rounded-lg p-3 flex items-center space-x-2 shadow-sm">
+            <input 
+              type="text" 
+              id="input-new-guardrail" 
+              placeholder="e.g. Do NOT touch legacy billing endpoints under apps/billing/"
+              class="flex-1 bg-dark-900 border border-dark-600 rounded-md px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-mono"
+            />
+            <button 
+              id="btn-add-guardrail" 
+              class="px-4 py-1.5 bg-brand-500 hover:bg-brand-600 rounded-md text-xs font-semibold text-white transition-colors flex items-center space-x-1"
+            >
+              <span>+</span>
+              <span>Add Guardrail</span>
+            </button>
+          </div>
+
+          <!-- List of Static Guardrails -->
+          ${
+            staticRules.length === 0
+              ? `<div class="bg-dark-800 border border-dark-600 rounded-lg p-8 text-center text-xs text-dark-500">
+                  No static guardrails defined yet. Type a rule above to add your first guardrail (e.g. <code>Do NOT touch legacy/</code>).
+                 </div>`
+              : `<div class="space-y-2">
+                  ${staticRules
+                    .map(
+                      (rule, idx) => `
+                    <div class="group flex items-center justify-between bg-dark-800 border border-dark-600 rounded-lg px-4 py-3 transition hover:border-dark-500">
+                      <div class="flex items-start space-x-3 min-w-0 pr-3">
+                        <span class="text-amber-400 font-bold mt-0.5">•</span>
+                        <span class="text-xs text-dark-100 font-mono leading-relaxed select-text">${escapeHtml(rule)}</span>
+                      </div>
+                      <button 
+                        class="btn-delete-guardrail opacity-0 group-hover:opacity-100 p-1 text-dark-500 hover:text-red-400 transition-opacity flex-shrink-0" 
+                        data-index="${idx}"
+                        title="Delete guardrail"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  `
+                    )
+                    .join('')}
+                 </div>`
+          }
+        </div>
+      `;
+
     case 'learned':
       return `
         <div class="space-y-3">
@@ -190,35 +319,6 @@ function renderTabContent(
                   `
                     )
                     .join('')}
-                 </div>`
-          }
-        </div>
-      `;
-
-    case 'static':
-      return `
-        <div class="space-y-3">
-          <div class="flex items-center justify-between border-b border-dark-700 pb-2.5">
-            <div>
-              <h4 class="text-sm font-semibold text-white flex items-center space-x-2">
-                <span>🛡️</span>
-                <span>Static Guardrails (${staticRules.length})</span>
-              </h4>
-              <p class="text-xs text-dark-500 mt-0.5">
-                Permanent human-defined rules that instruct the AI agent to skip specific directories, migration files, or dependencies.
-              </p>
-            </div>
-          </div>
-
-          ${
-            staticRules.length === 0
-              ? `<div class="bg-dark-800 border border-dark-600 rounded-lg p-8 text-center text-xs text-dark-500">
-                  No static guardrails defined. Switch to Raw Markdown Editor to add rules like <code>- Do NOT touch legacy/</code>.
-                 </div>`
-              : `<div class="bg-dark-800 border border-dark-600 rounded-lg p-4 space-y-2">
-                  <ul class="text-xs text-dark-100 list-disc list-inside space-y-2 leading-relaxed">
-                    ${staticRules.map((rule) => `<li>${escapeHtml(rule)}</li>`).join('')}
-                  </ul>
                  </div>`
           }
         </div>
