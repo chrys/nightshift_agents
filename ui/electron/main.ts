@@ -99,6 +99,11 @@ ipcMain.handle('config:get', async () => {
   return configManager.getConfig();
 });
 
+ipcMain.handle('config:updateGlobal', async (_event, settings: any) => {
+  configManager.updateGlobalSettings(settings);
+  return configManager.getConfig();
+});
+
 ipcMain.handle('config:addRepo', async (_event, spec: string) => {
   configManager.addRepo(spec);
   return configManager.getConfig();

@@ -119,8 +119,13 @@ class AppController {
         renderProjectSettings(
           container,
           this.selectedRepo,
+          this.config!,
           gitDetails,
           promptData,
+          async (globalSettings) => {
+            this.config = await window.electronAPI.updateGlobalConfig(globalSettings);
+            await this.refreshGlobalData();
+          },
           async (newSpec) => {
             await window.electronAPI.updateRepo(this.selectedRepo!.raw, newSpec);
             await this.refreshGlobalData();

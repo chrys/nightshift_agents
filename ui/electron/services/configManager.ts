@@ -18,6 +18,10 @@ export interface ConfigData {
   personaRotation: boolean;
   agyWeekdayModel: string;
   agySundayModel: string;
+  claudeWeekdayModel: string;
+  claudeSundayModel: string;
+  opencodeWeekdayModel: string;
+  opencodeSundayModel: string;
 }
 
 export class ConfigManager {
@@ -101,6 +105,10 @@ export class ConfigManager {
         personaRotation: true,
         agyWeekdayModel: 'Gemini 3.8 Flash (High)',
         agySundayModel: 'Gemini 4 Argon (Medium)',
+        claudeWeekdayModel: '',
+        claudeSundayModel: '',
+        opencodeWeekdayModel: '',
+        opencodeSundayModel: '',
       };
     }
 
@@ -113,6 +121,10 @@ export class ConfigManager {
     let personaRotation = true;
     let agyWeekdayModel = 'Gemini 3.8 Flash (High)';
     let agySundayModel = 'Gemini 4 Argon (Medium)';
+    let claudeWeekdayModel = '';
+    let claudeSundayModel = '';
+    let opencodeWeekdayModel = '';
+    let opencodeSundayModel = '';
     const repoSpecs: RepoSpec[] = [];
 
     let inRepos = false;
@@ -134,6 +146,14 @@ export class ConfigManager {
         agyWeekdayModel = trimmed.replace(/^AGY_WEEKDAY_MODEL=["']?([^"']+)["']?$/, '$1');
       } else if (trimmed.startsWith('AGY_SUNDAY_MODEL=')) {
         agySundayModel = trimmed.replace(/^AGY_SUNDAY_MODEL=["']?([^"']+)["']?$/, '$1');
+      } else if (trimmed.startsWith('CLAUDE_WEEKDAY_MODEL=')) {
+        claudeWeekdayModel = trimmed.replace(/^CLAUDE_WEEKDAY_MODEL=["']?([^"']+)["']?$/, '$1');
+      } else if (trimmed.startsWith('CLAUDE_SUNDAY_MODEL=')) {
+        claudeSundayModel = trimmed.replace(/^CLAUDE_SUNDAY_MODEL=["']?([^"']+)["']?$/, '$1');
+      } else if (trimmed.startsWith('OPENCODE_WEEKDAY_MODEL=')) {
+        opencodeWeekdayModel = trimmed.replace(/^OPENCODE_WEEKDAY_MODEL=["']?([^"']+)["']?$/, '$1');
+      } else if (trimmed.startsWith('OPENCODE_SUNDAY_MODEL=')) {
+        opencodeSundayModel = trimmed.replace(/^OPENCODE_SUNDAY_MODEL=["']?([^"']+)["']?$/, '$1');
       } else if (trimmed.startsWith('REPOS=(')) {
         inRepos = true;
       } else if (inRepos) {
@@ -156,7 +176,38 @@ export class ConfigManager {
       personaRotation,
       agyWeekdayModel,
       agySundayModel,
+      claudeWeekdayModel,
+      claudeSundayModel,
+      opencodeWeekdayModel,
+      opencodeSundayModel,
     };
+  }
+
+  public updateGlobalSettings(settings: Partial<ConfigData>): void {
+    let content = fs.readFileSync(this.configPath, 'utf-8');
+
+    const updateOrAppend = (key: string, value: string | number | boolean) => {
+      const regex = new RegExp(`^${key}=.*$`, 'm');
+      const valStr = typeof value === 'string' ? `"${value}"` : `${value}`;
+      if (regex.test(content)) {
+        content = content.replace(regex, `${key}=${valStr}`);
+      } else {
+        content = content.trimEnd() + `\n${key}=${valStr}\n`;
+      }
+    };
+
+    if (settings.engine !== undefined) updateOrAppend('ENGINE', settings.engine);
+    if (settings.agyWeekdayModel !== undefined) updateOrAppend('AGY_WEEKDAY_MODEL', settings.agyWeekdayModel);
+    if (settings.agySundayModel !== undefined) updateOrAppend('AGY_SUNDAY_MODEL', settings.agySundayModel);
+    if (settings.claudeWeekdayModel !== undefined) updateOrAppend('CLAUDE_WEEKDAY_MODEL', settings.claudeWeekdayModel);
+    if (settings.claudeSundayModel !== undefined) updateOrAppend('CLAUDE_SUNDAY_MODEL', settings.claudeSundayModel);
+    if (settings.opencodeWeekdayModel !== undefined) updateOrAppend('OPENCODE_WEEKDAY_MODEL', settings.opencodeWeekdayModel);
+    if (settings.opencodeSundayModel !== undefined) updateOrAppend('OPENCODE_SUNDAY_MODEL', settings.opencodeSundayModel);
+    if (settings.maxOpenPrs !== undefined) updateOrAppend('MAX_OPEN_PRS', settings.maxOpenPrs);
+    if (settings.testCommand !== undefined) updateOrAppend('TEST_COMMAND', settings.testCommand);
+    if (settings.personaRotation !== undefined) updateOrAppend('PERSONA_ROTATION', settings.personaRotation);
+
+    fs.writeFileSync(this.configPath, content, 'utf-8');
   }
 
   public addRepo(spec: string): void {

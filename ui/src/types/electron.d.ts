@@ -15,6 +15,10 @@ export interface ConfigData {
   personaRotation: boolean;
   agyWeekdayModel: string;
   agySundayModel: string;
+  claudeWeekdayModel: string;
+  claudeSundayModel: string;
+  opencodeWeekdayModel: string;
+  opencodeSundayModel: string;
 }
 
 export interface PullRequestItem {
@@ -69,6 +73,7 @@ export interface ScheduleStatus {
 
 export interface ElectronAPI {
   getConfig: () => Promise<ConfigData>;
+  updateGlobalConfig: (settings: Partial<ConfigData>) => Promise<ConfigData>;
   addRepo: (spec: string) => Promise<ConfigData>;
   removeRepo: (repoPath: string) => Promise<ConfigData>;
   updateRepo: (oldSpec: string, newSpec: string) => Promise<ConfigData>;

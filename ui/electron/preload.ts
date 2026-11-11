@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 const electronAPI = {
   // Config management
   getConfig: () => ipcRenderer.invoke('config:get'),
+  updateGlobalConfig: (settings: any) => ipcRenderer.invoke('config:updateGlobal', settings),
   addRepo: (spec: string) => ipcRenderer.invoke('config:addRepo', spec),
   removeRepo: (repoPath: string) => ipcRenderer.invoke('config:removeRepo', repoPath),
   updateRepo: (oldSpec: string, newSpec: string) => ipcRenderer.invoke('config:updateRepo', oldSpec, newSpec),
