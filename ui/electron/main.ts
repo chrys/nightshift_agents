@@ -1,11 +1,12 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { ConfigManager } from './services/configManager';
 import { GitService } from './services/gitService';
 import { LogService } from './services/logService';
 import { SweepRunner } from './services/sweepRunner';
 
-const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+const isDev = process.env.NODE_ENV === 'development';
 const rootDir = path.resolve(__dirname, '..', '..');
 
 const configManager = new ConfigManager(rootDir);
@@ -31,10 +32,20 @@ function createWindow() {
     },
   });
 
+  const indexPath = path.join(__dirname, '..', 'dist', 'index.html');
+
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173');
+    const devUrl = 'http://localhost:5173';
+    const tryLoad = () => {
+      mainWindow?.loadURL(devUrl).catch(() => {
+        setTimeout(tryLoad, 500);
+      });
+    };
+    tryLoad();
+  } else if (fs.existsSync(indexPath)) {
+    mainWindow.loadFile(indexPath);
   } else {
-    mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+    mainWindow.loadURL('http://localhost:5173');
   }
 
   mainWindow.on('closed', () => {
@@ -161,3 +172,4 @@ ipcMain.handle('sweep:run', async (_event, repoSpec?: string) => {
 ipcMain.handle('sweep:stop', async () => {
   return sweepRunner.stopSweep();
 });
+

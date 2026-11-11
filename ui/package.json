@@ -10,9 +10,14 @@
     "build:electron": "tsc -p tsconfig.electron.json",
     "build": "npm run build:vite && npm run build:electron",
     "dev": "npm run build:electron && concurrently -k \"vite\" \"cross-env NODE_ENV=development electron .\"",
-    "start": "electron ."
+    "start": "npm run build && cross-env NODE_ENV=production electron ."
   },
-  "keywords": ["electron", "nightly-prompts", "ai-agents", "developer-tools"],
+  "keywords": [
+    "electron",
+    "nightly-prompts",
+    "ai-agents",
+    "developer-tools"
+  ],
   "author": "chrys",
   "license": "MIT",
   "devDependencies": {
@@ -21,7 +26,7 @@
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.1.0",
     "cross-env": "^7.0.3",
-    "electron": "^33.2.0",
+    "electron": "^45.3.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.7.2",
