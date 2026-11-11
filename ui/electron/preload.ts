@@ -29,6 +29,9 @@ const electronAPI = {
   runSweep: (repoSpec?: string) => ipcRenderer.invoke('sweep:run', repoSpec),
   stopSweep: () => ipcRenderer.invoke('sweep:stop'),
 
+  // Utilities
+  openExternal: (url: string) => ipcRenderer.invoke('util:openExternal', url),
+
   // Events
   onSweepOutput: (callback: (chunk: string) => void) => {
     const subscription = (_event: any, value: string) => callback(value);
@@ -43,3 +46,4 @@ const electronAPI = {
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);
+

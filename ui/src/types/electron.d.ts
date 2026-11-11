@@ -98,6 +98,7 @@ export interface ElectronAPI {
 
   runSweep: (repoSpec?: string) => Promise<boolean>;
   stopSweep: () => Promise<boolean>;
+  openExternal: (url: string) => Promise<void>;
 
   onSweepOutput: (callback: (chunk: string) => void) => () => void;
   onSweepComplete: (callback: (code: number | null) => void) => () => void;
@@ -108,3 +109,4 @@ declare global {
     electronAPI: ElectronAPI;
   }
 }
+

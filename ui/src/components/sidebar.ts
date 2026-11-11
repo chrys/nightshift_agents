@@ -115,3 +115,4 @@ export function renderSidebar(
     personaBadge.title = persona.description;
   }
 }
+

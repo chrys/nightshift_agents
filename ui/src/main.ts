@@ -335,3 +335,4 @@ class AppController {
 window.addEventListener('DOMContentLoaded', () => {
   new AppController();
 });
+

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { ConfigManager } from './services/configManager';
@@ -47,6 +47,14 @@ function createWindow() {
   } else {
     mainWindow.loadURL('http://localhost:5173');
   }
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('https://') || url.startsWith('http://')) {
+      shell.openExternal(url);
+      return { action: 'deny' };
+    }
+    return { action: 'allow' };
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -171,5 +179,11 @@ ipcMain.handle('sweep:run', async (_event, repoSpec?: string) => {
 
 ipcMain.handle('sweep:stop', async () => {
   return sweepRunner.stopSweep();
+});
+
+ipcMain.handle('util:openExternal', async (_event, url: string) => {
+  if (url && (url.startsWith('https://') || url.startsWith('http://'))) {
+    await shell.openExternal(url);
+  }
 });
 

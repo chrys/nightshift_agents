@@ -192,3 +192,4 @@ export class ConfigManager {
     fs.writeFileSync(this.configPath, updated, 'utf-8');
   }
 }
+
