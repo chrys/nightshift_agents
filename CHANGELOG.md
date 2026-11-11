@@ -4,6 +4,21 @@ All notable changes, architectural features, and pipeline improvements implement
 
 ---
 
+## [2026-11-11]
+
+### Added
+- **Cross-Platform Electron Desktop Cockpit (`ui/`):**
+  - Built a native desktop application in `ui/` using Vanilla HTML5, TypeScript, Vite, and Tailwind CSS.
+  - Native directory picker to add repositories with automatic branch, remote, and stack detection.
+  - **PR Activity & Do-Not-Repeat Ledger:** Visual inspection of Open, Merged, and Declined PRs with Change-Fingerprints, Target-Scopes, and reviewer comments.
+  - **Architectural Rules Editor:** Visual viewer and editor for `.nightly-ignore.md`, clearly separating permanent static rules from auto-learned rules derived from rejected PRs.
+  - **Logs & Live Terminal:** Historical run log browser and live terminal streaming with ANSI color rendering.
+  - **Settings & Prompt Editor:** In-app visual editor for repository destination branches, engine overrides, and custom `.agents/nightly_prompt.md`.
+  - **Interactive Sweep Launcher:** Trigger an immediate sweep for a single project or all repositories with real-time progress and abort capabilities.
+  - **Cross-Platform Compatibility:** Runs natively on macOS and Linux, with Git Bash / WSL detection for Windows.
+
+---
+
 ## [2026-11-10]
 
 ### Added

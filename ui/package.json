@@ -1,0 +1,30 @@
+{
+  "name": "nightly-prompts-cockpit",
+  "version": "1.0.0",
+  "description": "Cross-platform Electron Cockpit for Nightly Prompts",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev:vite": "vite",
+    "dev:electron": "electron .",
+    "build:vite": "vite build",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "build": "npm run build:vite && npm run build:electron",
+    "dev": "npm run build:electron && concurrently -k \"vite\" \"cross-env NODE_ENV=development electron .\"",
+    "start": "electron ."
+  },
+  "keywords": ["electron", "nightly-prompts", "ai-agents", "developer-tools"],
+  "author": "chrys",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "ansi-to-html": "^0.7.2",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^33.2.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.1"
+  }
+}

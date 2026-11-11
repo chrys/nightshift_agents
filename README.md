@@ -45,6 +45,9 @@ Wake up every morning to clean, test-verified Pull Requests on GitHub across fiv
 - **PR Backlog Throttling & Test Gate:**
   - Pauses new sweeps if unmerged automated PRs reach `MAX_OPEN_PRS` to prevent review queue accumulation.
   - Optional `TEST_COMMAND` gate ensures failing runs discard changes before opening a PR.
+- **Cross-Platform Electron Desktop Cockpit:**
+  - Complete native desktop app for macOS, Linux, and Windows.
+  - Visually manage repositories, view PR activity feeds and Do-Not-Repeat ledgers, edit architectural rules, inspect historical logs, and trigger manual sweeps with live streaming terminal output.
 - **Smart Model Scheduling:**
   - Run fast, quota-friendly models on weekdays and deeper-reasoning models on Sundays.
 
@@ -125,6 +128,31 @@ TEST_COMMAND=""           # Optional: e.g. "pytest -q" or "npm test" before open
   - **Linux (Cron fallback):** If systemd user services are not running (e.g. in WSL or containers), automatically configured in user `crontab` (`0 2 * * *`).
 - **Logs:**
   Execution logs are stored daily in `~/logs/nightly-sweep/<YYYY-MM-DD>/<repo_name>.log`.
+
+---
+
+## 🖥️ Electron Desktop Cockpit (macOS, Linux, Windows)
+
+A modern desktop application is included under `ui/` to monitor, configure, and trigger sweeps visually.
+
+```bash
+cd ui
+npm install
+npm run build
+npm start
+```
+
+For live development with hot reload:
+```bash
+npm run dev
+```
+
+### Features
+* **Project Sidebar:** Add or remove local Git repositories via native directory picker; configure target branch and engine overrides visually.
+* **PR Activity & Do-Not-Repeat Ledger:** Inspect open, merged, and rejected PRs with full Change-Fingerprints, Target-Scopes, and reviewer comments.
+* **Architectural Rules Viewer/Editor:** View static guardrails and auto-distilled architectural rules learned from rejected PRs, with live in-app editing of `.nightly-ignore.md`.
+* **Historical Logs & Live Terminal:** Browse historical execution logs or watch live sweep progress with colored ANSI terminal output.
+* **Interactive Sweep Launcher:** Trigger an immediate sweep on a single project or run a full batch across all repositories, with the ability to safely abort running sweeps.
 
 ---
 
