@@ -35,6 +35,7 @@ const electronAPI = {
   createTask: (data: any) => ipcRenderer.invoke('tasks:create', data),
   deleteTask: (id: string) => ipcRenderer.invoke('tasks:delete', id),
   runTask: (taskId: string) => ipcRenderer.invoke('tasks:run', taskId),
+  getEngineModels: (engine: string) => ipcRenderer.invoke('engine:getModels', engine),
 
   // Utilities
   openExternal: (url: string) => ipcRenderer.invoke('util:openExternal', url),

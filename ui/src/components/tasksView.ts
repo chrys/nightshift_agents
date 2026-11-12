@@ -1,4 +1,65 @@
-import { RepoSpec, TaskItem } from '../types/electron';
+import { ModelOption, RepoSpec, TaskItem } from '../types/electron';
+
+export const DEFAULT_AGY_MODELS: ModelOption[] = [
+  { id: 'gemini-4-argon-medium', label: 'Gemini 4 Argon (Medium)' },
+  { id: 'gemini-4-argon-high', label: 'Gemini 4 Argon (High)' },
+  { id: 'gemini-4-argon-low', label: 'Gemini 4 Argon (Low)' },
+  { id: 'gemini-3.8-flash-high', label: 'Gemini 3.8 Flash (High)' },
+  { id: 'gemini-3.8-flash-medium', label: 'Gemini 3.8 Flash (Medium)' },
+  { id: 'gemini-3.8-flash-low', label: 'Gemini 3.8 Flash (Low)' },
+  { id: 'claude-opus-5-5-low', label: 'Claude Opus 5.5 (Low)' },
+  { id: 'claude-opus-5-5-medium', label: 'Claude Opus 5.5 (Medium)' },
+  { id: 'claude-opus-5-5-high', label: 'Claude Opus 5.5 (High)' },
+  { id: 'claude-sonnet-5-5-low', label: 'Claude Sonnet 5.5 (Low)' },
+  { id: 'claude-sonnet-5-5-medium', label: 'Claude Sonnet 5.5 (Medium)' },
+  { id: 'claude-sonnet-5-5-high', label: 'Claude Sonnet 5.5 (High)' },
+  { id: 'gpt-oss-120b-medium', label: 'GPT-OSS 120B (Medium)' },
+];
+
+export const DEFAULT_CLAUDE_MODELS: ModelOption[] = [
+  { id: 'claude-3-7-sonnet-20250219', label: 'Claude 3.7 Sonnet' },
+  { id: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
+  { id: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' },
+  { id: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
+];
+
+export const DEFAULT_OPENCODE_MODELS: ModelOption[] = [
+  { id: 'google/gemini-3.8-flash', label: 'Gemini 3.8 Flash' },
+  { id: 'google/gemini-4-argon', label: 'Gemini 4 Argon' },
+  { id: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+  { id: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+  { id: 'opencode/deepseek-v4.1-flash-free', label: 'DeepSeek v4.1 Flash (Free)' },
+  { id: 'opencode/glm-5.3-flash-free', label: 'GLM 5.3 Flash (Free)' },
+];
+
+const ALL_KNOWN_MODELS: Record<string, string> = {
+  'gemini-4-argon-medium': 'Gemini 4 Argon (Medium)',
+  'gemini-4-argon-high': 'Gemini 4 Argon (High)',
+  'gemini-4-argon-low': 'Gemini 4 Argon (Low)',
+  'gemini-3.8-flash-high': 'Gemini 3.8 Flash (High)',
+  'gemini-3.8-flash-medium': 'Gemini 3.8 Flash (Medium)',
+  'gemini-3.8-flash-low': 'Gemini 3.8 Flash (Low)',
+  'claude-opus-5-5-low': 'Claude Opus 5.5 (Low)',
+  'claude-opus-5-5-medium': 'Claude Opus 5.5 (Medium)',
+  'claude-opus-5-5-high': 'Claude Opus 5.5 (High)',
+  'claude-sonnet-5-5-low': 'Claude Sonnet 5.5 (Low)',
+  'claude-sonnet-5-5-medium': 'Claude Sonnet 5.5 (Medium)',
+  'claude-sonnet-5-5-high': 'Claude Sonnet 5.5 (High)',
+  'gpt-oss-120b-medium': 'GPT-OSS 120B (Medium)',
+  'claude-3-7-sonnet-20250219': 'Claude 3.7 Sonnet',
+  'claude-3-5-sonnet-20241022': 'Claude 3.5 Sonnet',
+  'claude-3-5-haiku-20241022': 'Claude 3.5 Haiku',
+  'claude-3-opus-20240229': 'Claude 3 Opus',
+  'google/gemini-3.8-flash': 'Gemini 3.8 Flash',
+  'google/gemini-4-argon': 'Gemini 4 Argon',
+  'google/gemini-2.5-flash': 'Gemini 2.5 Flash',
+  'google/gemini-2.5-pro': 'Gemini 2.5 Pro',
+};
+
+function getModelDisplayLabel(modelId: string): string {
+  if (!modelId) return 'Default';
+  return ALL_KNOWN_MODELS[modelId] || modelId;
+}
 
 export function renderTasksView(
   container: HTMLElement,
@@ -16,6 +77,8 @@ export function renderTasksView(
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+  const initialEngine = currentRepo.engine || 'agy';
 
   container.innerHTML = `
     <div class="space-y-6">
@@ -49,8 +112,46 @@ export function renderTasksView(
           ></textarea>
         </div>
 
-        <!-- Controls Grid: Schedule & Model -->
+        <!-- Controls Grid: Engine -> Model -> Schedule -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+          <!-- Engine Selector -->
+          <div>
+            <label class="block text-xs font-semibold text-dark-300 uppercase tracking-wider mb-1.5">
+              AI Engine
+            </label>
+            <select
+              id="task-engine-select"
+              class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500"
+            >
+              <option value="agy" ${initialEngine === 'agy' ? 'selected' : ''}>Google Antigravity (agy)</option>
+              <option value="claude" ${initialEngine === 'claude' ? 'selected' : ''}>Claude Code (claude)</option>
+              <option value="opencode" ${initialEngine === 'opencode' ? 'selected' : ''}>OpenCode (opencode)</option>
+            </select>
+          </div>
+
+          <!-- Model Choice (Dynamically Updated According to Engine) -->
+          <div>
+            <label class="block text-xs font-semibold text-dark-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+              <span>AI Model</span>
+              <span id="model-loading-indicator" class="hidden text-[10px] text-brand-400 font-normal">Loading...</span>
+            </label>
+            <select
+              id="task-model-select"
+              class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500"
+            >
+              <!-- Injected dynamically based on engine -->
+            </select>
+
+            <div id="task-custom-model-container" class="hidden mt-2">
+              <input
+                type="text"
+                id="task-custom-model"
+                placeholder="Enter custom model identifier"
+                class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-mono"
+              />
+            </div>
+          </div>
+
           <!-- Timing Option -->
           <div>
             <label class="block text-xs font-semibold text-dark-300 uppercase tracking-wider mb-1.5">
@@ -75,49 +176,6 @@ export function renderTasksView(
                 class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500"
               />
             </div>
-          </div>
-
-          <!-- Model Choice -->
-          <div>
-            <label class="block text-xs font-semibold text-dark-300 uppercase tracking-wider mb-1.5">
-              AI Model
-            </label>
-            <select
-              id="task-model-select"
-              class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500"
-            >
-              <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-              <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-              <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
-              <option value="gemini-4-argon">Gemini 4 Argon</option>
-              <option value="claude-3-7-sonnet">Claude 3.7 Sonnet</option>
-              <option value="claude-3-5-haiku">Claude 3.5 Haiku</option>
-              <option value="custom">Custom Model Name...</option>
-            </select>
-
-            <div id="task-custom-model-container" class="hidden mt-2">
-              <input
-                type="text"
-                id="task-custom-model"
-                placeholder="e.g. gemini-2.5-flash"
-                class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 font-mono"
-              />
-            </div>
-          </div>
-
-          <!-- Engine Override -->
-          <div>
-            <label class="block text-xs font-semibold text-dark-300 uppercase tracking-wider mb-1.5">
-              Engine
-            </label>
-            <select
-              id="task-engine-select"
-              class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500"
-            >
-              <option value="agy" ${currentRepo.engine === 'agy' || !currentRepo.engine ? 'selected' : ''}>Antigravity (agy)</option>
-              <option value="claude" ${currentRepo.engine === 'claude' ? 'selected' : ''}>Claude Code (claude)</option>
-              <option value="opencode" ${currentRepo.engine === 'opencode' ? 'selected' : ''}>OpenCode (opencode)</option>
-            </select>
           </div>
         </div>
 
@@ -168,7 +226,7 @@ export function renderTasksView(
                 <tr>
                   <th class="px-4 py-3">Schedule / Date</th>
                   <th class="px-4 py-3">Prompt</th>
-                  <th class="px-4 py-3">Model</th>
+                  <th class="px-4 py-3">Engine & Model</th>
                   <th class="px-4 py-3">Status</th>
                   <th class="px-4 py-3">Result / PR</th>
                   <th class="px-4 py-3 text-right">Actions</th>
@@ -184,7 +242,64 @@ export function renderTasksView(
     </div>
   `;
 
-  // UI Interactivity: Timing select toggle
+  // Model & Engine dynamic wiring
+  const engineSelect = container.querySelector('#task-engine-select') as HTMLSelectElement;
+  const modelSelect = container.querySelector('#task-model-select') as HTMLSelectElement;
+  const customModelContainer = container.querySelector('#task-custom-model-container') as HTMLElement;
+  const customModelInput = container.querySelector('#task-custom-model') as HTMLInputElement;
+  const loadingIndicator = container.querySelector('#model-loading-indicator') as HTMLElement;
+
+  const updateModelsForEngine = async (engine: string) => {
+    loadingIndicator?.classList.remove('hidden');
+
+    let models: ModelOption[] = [];
+    try {
+      if (window.electronAPI.getEngineModels) {
+        models = await window.electronAPI.getEngineModels(engine);
+      }
+    } catch {
+      // fallback
+    }
+
+    if (!models || models.length === 0) {
+      if (engine === 'agy') models = DEFAULT_AGY_MODELS;
+      else if (engine === 'claude') models = DEFAULT_CLAUDE_MODELS;
+      else if (engine === 'opencode') models = DEFAULT_OPENCODE_MODELS;
+      else models = DEFAULT_AGY_MODELS;
+    }
+
+    loadingIndicator?.classList.add('hidden');
+
+    let html = '';
+    for (const m of models) {
+      const isSelected = (engine === 'agy' && m.id === 'gemini-3.8-flash-high') || false;
+      html += `<option value="${escapeHtml(m.id)}" ${isSelected ? 'selected' : ''}>${escapeHtml(m.label)}</option>`;
+    }
+    html += `<option value="custom">Custom Model Name...</option>`;
+
+    modelSelect.innerHTML = html;
+    customModelContainer?.classList.add('hidden');
+    if (customModelInput) customModelInput.value = '';
+  };
+
+  // Initial populate of models
+  updateModelsForEngine(engineSelect.value);
+
+  // Engine change listener
+  engineSelect.addEventListener('change', () => {
+    updateModelsForEngine(engineSelect.value);
+  });
+
+  // Model select change listener
+  modelSelect.addEventListener('change', () => {
+    if (modelSelect.value === 'custom') {
+      customModelContainer?.classList.remove('hidden');
+    } else {
+      customModelContainer?.classList.add('hidden');
+    }
+  });
+
+  // Timing select toggle
   const timingSelect = container.querySelector('#task-timing-select') as HTMLSelectElement;
   const customDateContainer = container.querySelector('#task-custom-date-container') as HTMLElement;
   const scheduleBtnText = container.querySelector('#btn-schedule-text') as HTMLElement;
@@ -203,18 +318,6 @@ export function renderTasksView(
       } else if (val === 'now') {
         if (scheduleBtnText) scheduleBtnText.innerText = 'Queue for Immediate Run';
       }
-    }
-  });
-
-  // UI Interactivity: Model select toggle
-  const modelSelect = container.querySelector('#task-model-select') as HTMLSelectElement;
-  const customModelContainer = container.querySelector('#task-custom-model-container') as HTMLElement;
-
-  modelSelect?.addEventListener('change', () => {
-    if (modelSelect.value === 'custom') {
-      customModelContainer?.classList.remove('hidden');
-    } else {
-      customModelContainer?.classList.add('hidden');
     }
   });
 
@@ -238,12 +341,10 @@ export function renderTasksView(
 
     let model = modelSelect.value;
     if (model === 'custom') {
-      const customModelInput = container.querySelector('#task-custom-model') as HTMLInputElement;
-      model = customModelInput?.value.trim() || 'gemini-2.5-flash';
+      model = customModelInput?.value.trim() || 'gemini-3.8-flash-high';
     }
 
-    const engineSelect = container.querySelector('#task-engine-select') as HTMLSelectElement;
-    const engine = engineSelect?.value || 'agy';
+    const engine = engineSelect.value || 'agy';
 
     return {
       repoPath: currentRepo.path,
@@ -359,6 +460,8 @@ function renderTaskRow(task: TaskItem): string {
     resultCell = `<span class="text-dark-400 italic">No diff / code changes needed</span>`;
   }
 
+  const modelLabel = getModelDisplayLabel(task.model);
+
   return `
     <tr class="hover:bg-dark-700/50 transition-colors">
       <td class="px-4 py-3 font-mono text-[11px] whitespace-nowrap text-dark-300">
@@ -370,9 +473,14 @@ function renderTaskRow(task: TaskItem): string {
         </div>
       </td>
       <td class="px-4 py-3 whitespace-nowrap">
-        <span class="px-2 py-0.5 rounded text-[11px] font-mono bg-dark-700 text-dark-300 border border-dark-600">
-          ${task.model || 'default'}
-        </span>
+        <div class="flex items-center space-x-1.5">
+          <span class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-dark-700 text-dark-400 border border-dark-600">
+            ${task.engine || 'agy'}
+          </span>
+          <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-dark-700 text-dark-200 border border-dark-600" title="${escapeHtml(task.model)}">
+            ${escapeHtml(modelLabel)}
+          </span>
+        </div>
       </td>
       <td class="px-4 py-3 whitespace-nowrap">
         ${statusBadge}

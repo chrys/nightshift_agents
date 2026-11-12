@@ -272,3 +272,4 @@ fi
 cd "$REPO_PATH"
 git worktree remove --force "$WORKTREE_DIR" >> "$LOG_FILE" 2>&1
 echo "[$(date)] Done." | tee -a "$LOG_FILE"
+

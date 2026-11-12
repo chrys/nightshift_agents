@@ -6,6 +6,7 @@ import { GitService } from './services/gitService';
 import { LogService } from './services/logService';
 import { SweepRunner } from './services/sweepRunner';
 import { TaskManager } from './services/taskManager';
+import { ModelService } from './services/modelService';
 
 const isDev = process.env.NODE_ENV === 'development';
 const rootDir = path.resolve(__dirname, '..', '..');
@@ -15,6 +16,7 @@ const gitService = new GitService();
 const logService = new LogService();
 const sweepRunner = new SweepRunner();
 const taskManager = new TaskManager(rootDir);
+const modelService = new ModelService();
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -212,6 +214,10 @@ ipcMain.handle('tasks:run', async (_event, taskId: string) => {
       mainWindow?.webContents.send('sweep:complete', code);
     },
   });
+});
+
+ipcMain.handle('engine:getModels', async (_event, engine: string) => {
+  return modelService.getModelsForEngine(engine);
 });
 
 ipcMain.handle('util:openExternal', async (_event, url: string) => {

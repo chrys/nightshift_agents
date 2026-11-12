@@ -71,6 +71,11 @@ export interface ScheduleStatus {
   details: string;
 }
 
+export interface ModelOption {
+  id: string;
+  label: string;
+}
+
 export interface TaskItem {
   id: string;
   repoPath: string;
@@ -129,6 +134,7 @@ export interface ElectronAPI {
   createTask: (data: Omit<TaskItem, 'id' | 'createdAt' | 'status'>) => Promise<TaskItem>;
   deleteTask: (id: string) => Promise<boolean>;
   runTask: (taskId: string) => Promise<boolean>;
+  getEngineModels: (engine: string) => Promise<ModelOption[]>;
 
   onSweepOutput: (callback: (chunk: string) => void) => () => void;
   onSweepComplete: (callback: (code: number | null) => void) => () => void;
