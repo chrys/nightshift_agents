@@ -5,6 +5,7 @@ import { ConfigManager } from './services/configManager';
 import { GitService } from './services/gitService';
 import { LogService } from './services/logService';
 import { SweepRunner } from './services/sweepRunner';
+import { TaskManager } from './services/taskManager';
 
 const isDev = process.env.NODE_ENV === 'development';
 const rootDir = path.resolve(__dirname, '..', '..');
@@ -13,6 +14,7 @@ const configManager = new ConfigManager(rootDir);
 const gitService = new GitService();
 const logService = new LogService();
 const sweepRunner = new SweepRunner();
+const taskManager = new TaskManager(rootDir);
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -184,6 +186,32 @@ ipcMain.handle('sweep:run', async (_event, repoSpec?: string) => {
 
 ipcMain.handle('sweep:stop', async () => {
   return sweepRunner.stopSweep();
+});
+
+// Tasks Execution & Management
+ipcMain.handle('tasks:get', async (_event, repoPath?: string) => {
+  return taskManager.getTasks(repoPath);
+});
+
+ipcMain.handle('tasks:create', async (_event, data: any) => {
+  return taskManager.createTask(data);
+});
+
+ipcMain.handle('tasks:delete', async (_event, id: string) => {
+  return taskManager.deleteTask(id);
+});
+
+ipcMain.handle('tasks:run', async (_event, taskId: string) => {
+  return sweepRunner.runTask({
+    taskId,
+    rootDir,
+    onData: (chunk: string) => {
+      mainWindow?.webContents.send('sweep:output', chunk);
+    },
+    onExit: (code: number | null) => {
+      mainWindow?.webContents.send('sweep:complete', code);
+    },
+  });
 });
 
 ipcMain.handle('util:openExternal', async (_event, url: string) => {

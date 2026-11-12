@@ -30,6 +30,12 @@ const electronAPI = {
   runSweep: (repoSpec?: string) => ipcRenderer.invoke('sweep:run', repoSpec),
   stopSweep: () => ipcRenderer.invoke('sweep:stop'),
 
+  // One-time Tasks
+  getTasks: (repoPath?: string) => ipcRenderer.invoke('tasks:get', repoPath),
+  createTask: (data: any) => ipcRenderer.invoke('tasks:create', data),
+  deleteTask: (id: string) => ipcRenderer.invoke('tasks:delete', id),
+  runTask: (taskId: string) => ipcRenderer.invoke('tasks:run', taskId),
+
   // Utilities
   openExternal: (url: string) => ipcRenderer.invoke('util:openExternal', url),
 

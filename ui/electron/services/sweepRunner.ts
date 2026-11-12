@@ -9,6 +9,13 @@ export interface SweepRunOptions {
   onExit: (code: number | null) => void;
 }
 
+export interface TaskRunOptions {
+  taskId: string;
+  rootDir: string;
+  onData: (chunk: string) => void;
+  onExit: (code: number | null) => void;
+}
+
 export class SweepRunner {
   private activeProcess: ChildProcess | null = null;
 
@@ -113,6 +120,73 @@ export class SweepRunner {
         try { fs.unlinkSync(tempConfigFile); } catch {}
       }
       options.onData(`\n[Launcher Error] Failed to execute sweep process: ${err.message}\n`);
+      options.onExit(1);
+    });
+
+    return true;
+  }
+
+  public runTask(options: TaskRunOptions): boolean {
+    if (this.isRunning()) {
+      return false;
+    }
+
+    const scriptPath = path.resolve(options.rootDir, 'bin', 'run_task.sh');
+    if (!fs.existsSync(scriptPath)) {
+      options.onData(`[Error] Task runner script not found at: ${scriptPath}\n`);
+      options.onExit(1);
+      return false;
+    }
+
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.HOME}/.local/bin:${process.env.HOME}/.gemini/bin:${process.env.PATH}`,
+    };
+
+    let shellExecutable = '/bin/bash';
+    const shellArgs = [scriptPath, options.taskId];
+
+    if (process.platform === 'win32') {
+      const gitBashPaths = [
+        'C:\\Program Files\\Git\\bin\\bash.exe',
+        'C:\\Program Files (x86)\\Git\\bin\\bash.exe',
+        path.join(process.env.LOCALAPPDATA || '', 'Programs\\Git\\bin\\bash.exe'),
+      ];
+      const foundGitBash = gitBashPaths.find(p => fs.existsSync(p));
+      if (foundGitBash) {
+        shellExecutable = foundGitBash;
+      } else {
+        shellExecutable = 'bash';
+      }
+    }
+
+    options.onData(`[Launcher] Starting one-time task: ${options.taskId}...\n`);
+    options.onData(`[Launcher] Command: ${shellExecutable} ${scriptPath} ${options.taskId}\n`);
+    options.onData(`=================================================================\n`);
+
+    this.activeProcess = spawn(shellExecutable, shellArgs, {
+      env,
+      cwd: options.rootDir,
+    });
+
+    this.activeProcess.stdout?.on('data', (data) => {
+      options.onData(data.toString());
+    });
+
+    this.activeProcess.stderr?.on('data', (data) => {
+      options.onData(data.toString());
+    });
+
+    this.activeProcess.on('close', (code) => {
+      this.activeProcess = null;
+      options.onData(`\n=================================================================\n`);
+      options.onData(`[Launcher] Task execution finished with exit code ${code}\n`);
+      options.onExit(code);
+    });
+
+    this.activeProcess.on('error', (err) => {
+      this.activeProcess = null;
+      options.onData(`\n[Launcher Error] Failed to execute task runner: ${err.message}\n`);
       options.onExit(1);
     });
 

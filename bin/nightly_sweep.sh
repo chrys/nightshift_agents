@@ -466,6 +466,36 @@ for REPO_SPEC in "${REPOS[@]}"; do
   # 2b. Automatically distill permanent architectural exclusions from newly rejected PR comments
   distill_architectural_exclusions_from_rejected_prs "$REPO_PATH" "$ACTIVE_ENGINE" "$LOG_FILE"
 
+  # 2c. Check for pending scheduled one-time tasks for this repository
+  TASKS_FILE="$ROOT_DIR/tasks/tasks.json"
+  if [[ -f "$TASKS_FILE" && -f "$ROOT_DIR/bin/run_task.sh" ]]; then
+    PENDING_TASK_IDS=$(node -e '
+      const fs = require("fs");
+      try {
+        const repoPath = process.argv[1];
+        const today = new Date().toISOString().split("T")[0];
+        const tasks = JSON.parse(fs.readFileSync(process.argv[2], "utf-8"));
+        const match = tasks.filter(t => 
+          t.repoPath === repoPath && 
+          t.status === "pending" && 
+          (!t.scheduleDate || t.scheduleDate <= today)
+        );
+        console.log(match.map(m => m.id).join("\n"));
+      } catch (e) {
+        process.exit(0);
+      }
+    ' "$REPO_PATH" "$TASKS_FILE" 2>/dev/null || true)
+
+    if [[ -n "$PENDING_TASK_IDS" ]]; then
+      echo "[$(date)] 📝 Found pending scheduled one-time task(s) for $REPO_NAME..." >> "$LOG_FILE"
+      while IFS= read -r tid; do
+        [[ -z "$tid" ]] && continue
+        echo "[$(date)] 🚀 Executing scheduled one-time task: $tid" >> "$LOG_FILE"
+        "$ROOT_DIR/bin/run_task.sh" "$tid" >> "$LOG_FILE" 2>&1 || true
+      done <<< "$PENDING_TASK_IDS"
+    fi
+  fi
+
   # 3. Read static repo-level ignore rules (.nightly-ignore.md or .agy-ignore.md)
   STATIC_IGNORES="None"
   if [[ -f "$REPO_PATH/.nightly-ignore.md" ]]; then

@@ -71,6 +71,26 @@ export interface ScheduleStatus {
   details: string;
 }
 
+export interface TaskItem {
+  id: string;
+  repoPath: string;
+  repoName: string;
+  prompt: string;
+  scheduleDate: string; // YYYY-MM-DD
+  timingOption: 'tonight' | 'tomorrow' | 'custom' | 'now';
+  model: string;
+  engine: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  prNumber?: number;
+  prUrl?: string;
+  prTitle?: string;
+  prState?: 'OPEN' | 'MERGED' | 'CLOSED';
+  failureReason?: string;
+  logPath?: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
 export interface ElectronAPI {
   getConfig: () => Promise<ConfigData>;
   updateGlobalConfig: (settings: Partial<ConfigData>) => Promise<ConfigData>;
@@ -104,6 +124,11 @@ export interface ElectronAPI {
   runSweep: (repoSpec?: string) => Promise<boolean>;
   stopSweep: () => Promise<boolean>;
   openExternal: (url: string) => Promise<void>;
+
+  getTasks: (repoPath?: string) => Promise<TaskItem[]>;
+  createTask: (data: Omit<TaskItem, 'id' | 'createdAt' | 'status'>) => Promise<TaskItem>;
+  deleteTask: (id: string) => Promise<boolean>;
+  runTask: (taskId: string) => Promise<boolean>;
 
   onSweepOutput: (callback: (chunk: string) => void) => () => void;
   onSweepComplete: (callback: (code: number | null) => void) => () => void;

@@ -2,6 +2,7 @@ import './styles.css';
 import { ConfigData, PersonaInfo, RepoSpec, ScheduleStatus } from './types/electron';
 import { renderSidebar } from './components/sidebar';
 import { renderPrOverview } from './components/prOverview';
+import { renderTasksView } from './components/tasksView';
 import { renderRulesEditor } from './components/rulesEditor';
 import { renderLogViewer, appendLiveLogChunk } from './components/logViewer';
 import { renderProjectSettings } from './components/projectSettings';
@@ -9,7 +10,7 @@ import { renderProjectSettings } from './components/projectSettings';
 class AppController {
   private config: ConfigData | null = null;
   private selectedRepo: RepoSpec | null = null;
-  private activeTab: 'overview' | 'rules' | 'logs' | 'settings' = 'overview';
+  private activeTab: 'overview' | 'tasks' | 'rules' | 'logs' | 'settings' = 'overview';
   private persona: PersonaInfo | null = null;
   private schedule: ScheduleStatus | null = null;
 
@@ -92,6 +93,27 @@ class AppController {
       case 'overview': {
         const prs = await window.electronAPI.getPullRequests(this.selectedRepo.path);
         renderPrOverview(container, this.selectedRepo, prs);
+        break;
+      }
+      case 'tasks': {
+        const tasks = await window.electronAPI.getTasks(this.selectedRepo.path);
+        renderTasksView(container, this.selectedRepo, tasks, {
+          onCreateTask: async (data, runImmediately) => {
+            const created = await window.electronAPI.createTask(data);
+            if (runImmediately) {
+              await this.runTask(created.id);
+            } else {
+              await this.renderActiveTab();
+            }
+          },
+          onRunTask: async (taskId) => {
+            await this.runTask(taskId);
+          },
+          onDeleteTask: async (taskId) => {
+            await window.electronAPI.deleteTask(taskId);
+            await this.renderActiveTab();
+          },
+        });
         break;
       }
       case 'rules': {
@@ -251,8 +273,8 @@ class AppController {
     window.electronAPI.onSweepComplete((code) => {
       this.isSweepRunning = false;
       this.updateRunButtonsState();
-      // Auto refresh PR view after sweep completes
-      if (this.activeTab === 'overview') {
+      // Auto refresh PR view or tasks view after sweep/task completes
+      if (this.activeTab === 'overview' || this.activeTab === 'tasks') {
         this.renderActiveTab();
       }
     });
@@ -268,6 +290,19 @@ class AppController {
     if (logsTabButton) logsTabButton.click();
 
     await window.electronAPI.runSweep(repoSpec);
+  }
+
+  private async runTask(taskId: string) {
+    if (this.isSweepRunning) return;
+    this.isSweepRunning = true;
+    this.liveLogs = '';
+    this.updateRunButtonsState();
+
+    // Switch to Logs Tab so user sees live output
+    const logsTabButton = document.querySelector('[data-tab="logs"]') as HTMLButtonElement;
+    if (logsTabButton) logsTabButton.click();
+
+    await window.electronAPI.runTask(taskId);
   }
 
   private async stopSweep() {
